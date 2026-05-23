@@ -1,0 +1,6 @@
+[core]
+    remote = local_storage
+['remote "gdrive"']
+    url = gdrive://root/fridge-cv-dataset
+['remote "local_storage"']
+    url = /root/fridge-cv/remote
