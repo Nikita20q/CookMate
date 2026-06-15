@@ -19,7 +19,7 @@ dependencies {
 
     runtimeOnly("org.postgresql:postgresql")
     implementation("org.jsoup:jsoup:1.17.2")
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.18.1")
 
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
