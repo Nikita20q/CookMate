@@ -42,7 +42,7 @@ public class OlParser implements BaseInstructionParser {
     }
     @Override
     public int getPriority() {
-        return 100;
+        return 10;
     }
 
     @Override
