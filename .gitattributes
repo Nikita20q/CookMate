@@ -1,0 +1,10 @@
+data/part* filter=lfs diff=lfs merge=lfs -text
+data/part_1.tar.xz filter=lfs diff=lfs merge=lfs -text
+data/part_2.tar.xz filter=lfs diff=lfs merge=lfs -text
+data/part_3.tar.xz filter=lfs diff=lfs merge=lfs -text
+data/part_4.tar.xz filter=lfs diff=lfs merge=lfs -text
+data/part_5.tar.xz filter=lfs diff=lfs merge=lfs -text
+data/part_6.tar.xz filter=lfs diff=lfs merge=lfs -text
+data/part_7.tar.xz filter=lfs diff=lfs merge=lfs -text
+data/part_8.tar.xz filter=lfs diff=lfs merge=lfs -text
+*.pt filter=lfs diff=lfs merge=lfs -text
