@@ -29,12 +29,12 @@ public class OlParser implements BaseInstructionParser {
 
             ObjectNode stepNode = mapper.createObjectNode();
             stepNode.put("num", stepNumber++);
-            stepNode.put("step_desc", steps.text());
+            stepNode.put("stepTitle", steps.text());
             if (instruction != null) {
-                stepNode.put("step_inst", instruction.text());
+                stepNode.put("stepInstruction", instruction.text());
             }
             if (step_image != null) {
-                stepNode.put("img", step_image.attr("src"));
+                stepNode.put("imageUrl", step_image.attr("src"));
             }
             allSteps.add(stepNode);
         }

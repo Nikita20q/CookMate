@@ -48,8 +48,8 @@ public class DivParser implements BaseInstructionParser {
 
             ObjectNode stepNode = mapper.createObjectNode();
             stepNode.put("num", stepNumber);
-            stepNode.put("step_desc", "Шаг " + stepNumber);
-            stepNode.put("step_inst", text);
+            stepNode.put("stepTitle", "Шаг " + stepNumber);
+            stepNode.put("stepInstruction", text);
             allSteps.add(stepNode);
 
             stepNumber++;

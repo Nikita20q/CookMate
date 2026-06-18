@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS "recipes" (
     "protein" INTEGER,
     "fat" INTEGER,
     "carbohydrates" INTEGER,
+    "source_url" VARCHAR(500) UNIQUE,
     PRIMARY KEY("id")
     );
 

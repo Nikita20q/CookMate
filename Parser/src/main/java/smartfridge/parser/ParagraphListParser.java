@@ -67,8 +67,8 @@ public class ParagraphListParser implements BaseInstructionParser {
 
             ObjectNode stepNode = mapper.createObjectNode();
             stepNode.put("num", stepNumber);
-            stepNode.put("step_desc", "Шаг " + stepNumber);
-            stepNode.put("step_inst", stepText);
+            stepNode.put("stepTitle", "Шаг " + stepNumber);
+            stepNode.put("stepInstruction", stepText);
             allSteps.add(stepNode);
 
             stepNumber++;

@@ -12,6 +12,5 @@ public class Main {
         );
 
         linkParser.parseAllPages("https://1000.menu/catalog/drugoe", 2);
-
     }
 }
