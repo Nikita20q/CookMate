@@ -40,6 +40,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/favorites/**").authenticated()
                         .requestMatchers("/api/v1/search-history/**").authenticated()
+                        .requestMatchers("/api/v1/recipes/search").permitAll()
 
                         .requestMatchers(
                                 "/swagger-ui.html",
