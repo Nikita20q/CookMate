@@ -19,6 +19,21 @@ spring:
       hibernate:
         format_sql: true
 
+# S3 хранилище
+cloud:
+  aws:
+    s3:
+      endpoint: ${S3_ENDPOINT}
+      region: ru-1
+      bucket: cookmate-images
+
+    credentials:
+      access-key: ${S3_ACCESS_KEY}
+      secret-key: ${S3_SECRET_KEY}
+
+    stack:
+      auto: false
+
 # Логирование
 logging:
   level:

@@ -1,5 +1,7 @@
 package smartfridge.parser.services;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,8 @@ public class ParserService {
     private final ThousandMenuParser parser;
     private final RecipeRepository recipeRepository;
     private final IngredientRepository ingredientRepository;
+    private final S3Service s3Service;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public void parseAndSave(String baseUrl, int pages) {
         log.info("Начинаем парсинг {} страниц с {}", pages, baseUrl);
@@ -88,8 +92,11 @@ public class ParserService {
         }
 
         String contentJson = parser.parseRecipeDetails(card.getLinkUrl());
-
         String slug = generateSlugFromUrl(card);
+
+        String imageUrl = uploadMainImage(card.getImageUrl(), slug);
+
+        String processedContentJson = uploadStepImages(contentJson, slug);
 
         if (recipeRepository.existsBySlug(slug)) {
             log.warn("Slug {} уже существует, пропускаем рецепт", slug);
@@ -100,11 +107,11 @@ public class ParserService {
                 .title(card.getTitle())
                 .slug(slug)
                 .description(card.getDescription())
-                .imageUrl(card.getImageUrl())
+                .imageUrl(imageUrl)
                 .sourceUrl(card.getLinkUrl())
                 .prepTimeMinutes(parseMinutes(card.getApproximateTime()))
                 .calories(parseCalories(card.getCalories()))
-                .contentJson(contentJson)
+                .contentJson(processedContentJson)
                 .build();
 
         for (String ingredientName : card.getIngredients()) {
@@ -133,8 +140,86 @@ public class ParserService {
         }
 
         recipeRepository.save(recipe);
-        log.info("Сохранен рецепт: {} (slug: {})", recipe.getTitle(), slug);
+        log.info("Сохранен рецепт: {} (slug: {}, image: {})",
+                recipe.getTitle(), slug, imageUrl);
         return true;
+    }
+
+    private String uploadMainImage(String imageUrl, String recipeSlug) {
+        if (imageUrl == null || imageUrl.isEmpty()) {
+            log.warn("Нет главной картинки для рецепта {}", recipeSlug);
+            return null;
+        }
+
+        log.info("Загрузка главной картинки для {}: {}", recipeSlug, imageUrl);
+        String s3Url = s3Service.uploadRecipeImage(imageUrl, recipeSlug);
+
+        if (s3Url != null) {
+            log.info("Главная картинка загружена: {}", s3Url);
+        }
+
+        return s3Url;
+    }
+
+    private String uploadStepImages(String contentJson, String recipeSlug) {
+        if (contentJson == null || contentJson.isEmpty()) {
+            return contentJson;
+        }
+
+        try {
+            JsonNode jsonNode = objectMapper.readTree(contentJson);
+            JsonNode stepsNode = jsonNode.get("steps");
+
+            if (stepsNode == null || !stepsNode.isArray()) {
+                log.debug("Нет шагов в JSON для рецепта {}", recipeSlug);
+                return contentJson;
+            }
+
+            boolean hasChanges = false;
+            int stepNumber = 1;
+            int stepsWithImages = 0;
+            int stepsWithoutImages = 0;
+
+            for (JsonNode step : stepsNode) {
+                JsonNode imageNode = step.get("image");
+                if (imageNode == null || imageNode.asText().isEmpty()) {
+                    imageNode = step.get("imageUrl");
+                }
+
+                if (imageNode != null && !imageNode.asText().isEmpty()) {
+                    stepsWithImages++;
+                    String originalImageUrl = imageNode.asText();
+                    log.info("Загрузка картинки шага {} для {}: {}",
+                            stepNumber, recipeSlug, originalImageUrl);
+
+                    String s3Url = s3Service.uploadStepImage(
+                            originalImageUrl, recipeSlug, stepNumber);
+
+                    if (s3Url != null && !s3Url.equals(originalImageUrl)) {
+                        ((com.fasterxml.jackson.databind.node.ObjectNode) step)
+                                .put("image", s3Url);
+                        if (step.has("imageUrl")) {
+                            ((com.fasterxml.jackson.databind.node.ObjectNode) step)
+                                    .put("imageUrl", s3Url);
+                        }
+                        hasChanges = true;
+                        log.info("Картинка шага {} загружена: {}", stepNumber, s3Url);
+                    }
+                } else {
+                    stepsWithoutImages++;
+                }
+                stepNumber++;
+            }
+
+            log.info("Рецепт {}: шагов с картинками: {}, без картинок: {}",
+                    recipeSlug, stepsWithImages, stepsWithoutImages);
+
+            return hasChanges ? objectMapper.writeValueAsString(jsonNode) : contentJson;
+
+        } catch (Exception e) {
+            log.error("Ошибка при загрузке картинок шагов: {}", e.getMessage());
+            return contentJson;
+        }
     }
 
     private String generateSlugFromUrl(RecipeCard card) {

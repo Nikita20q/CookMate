@@ -26,6 +26,9 @@ dependencies {
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.junit.jupiter:junit-jupiter")
+
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("software.amazon.awssdk:s3:2.20.26")
 }
 
 tasks.test {

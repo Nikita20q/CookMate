@@ -5,21 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b39328fe-4654-477b-b837-b08a2c52f1e6" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/utils/SlugUtil.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/config/S3Config.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/services/S3Service.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/smartfridge/parser/entity/RecipeEntity.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/entity/RecipeEntity.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/smartfridge/parser/repository/RecipeRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/repository/RecipeRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle.kts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/smartfridge/parser/services/ParserService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/services/ParserService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/schema.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/schema.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/application.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/config/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/config/SecurityConfig.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/controller/RecipeController.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/controller/RecipeController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/dto/Recipe.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/dto/Recipe.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/entity/RecipeEntity.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/entity/RecipeEntity.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/mapper/RecipeMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/mapper/RecipeMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/repository/RecipeRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/repository/RecipeRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/service/RecipeService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/service/RecipeService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/test/resources/application.yml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/../docker-compose.yml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -30,6 +23,31 @@
     <projectState path="$PROJECT_DIR$">
       <ProjectState />
     </projectState>
+  </component>
+  <component name="ExternalProjectsManager">
+    <system id="GRADLE">
+      <state>
+        <task path="$PROJECT_DIR$">
+          <activation />
+        </task>
+        <projects_view>
+          <tree_state>
+            <expand>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="CookMateBackend" type="f1a62948:ProjectNode" />
+              </path>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="CookMateBackend" type="f1a62948:ProjectNode" />
+                <item name="Tasks" type="e4a08cd1:TasksNode" />
+              </path>
+            </expand>
+            <select />
+          </tree_state>
+        </projects_view>
+      </state>
+    </system>
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -61,11 +79,12 @@
     "RequestMappingsPanelWidth0": "75",
     "RequestMappingsPanelWidth1": "75",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
     "Spring Boot.ParserApplication.executor": "Run",
-    "git-widget-placeholder": "Backend",
+    "git-widget-placeholder": "main",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "/home/nikita/MyProjects/MGTU/CookMateBackend/Parser",
+    "last_opened_file_path": "/home/nikita/MyProjects/MGTU/CookMateBackend/backend",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -87,6 +106,13 @@
       <option name="filePath" />
       <method v="2" />
     </configuration>
+    <configuration name="ParserApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="CookMateBackend.main" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="smartfridge.parser.ParserApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
   </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
@@ -98,6 +124,9 @@
       <workItem from="1781817800885" duration="177000" />
       <workItem from="1782052125049" duration="4203000" />
       <workItem from="1782204195234" duration="997000" />
+      <workItem from="1782230620299" duration="334000" />
+      <workItem from="1782230967060" duration="7136000" />
+      <workItem from="1782240337295" duration="5000" />
     </task>
     <servers />
   </component>
