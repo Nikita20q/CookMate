@@ -4,10 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -19,16 +17,57 @@ import smartfridge.recipe.model.RecipeCard;
 import java.util.ArrayList;
 import java.util.List;
 
-@Getter
-@Setter
+@Slf4j
 @RequiredArgsConstructor
 @Component
 public class ThousandMenuParser {
-    private String BASE_URL = "https://1000.menu/";
-    private StringBuilder stringBuilder = new StringBuilder();
+    private final String BASE_URL = "https://1000.menu/";
     private final InstructionParserFactory instructionParserFactory;
+    public List<RecipeCard> parseOnePage(String url, int pageNumber) {
+        List<RecipeCard> recipeCards = new ArrayList<>();
+        String urlRes = url + "/" + pageNumber;
 
-    public void cardParse(String url) {
+        log.info("Парсинг страницы: {}", urlRes);
+
+        try {
+            Long cardCounter = 0L;
+            Document doc = Jsoup.connect(urlRes).get();
+            Elements cards = doc.select("div.cn-item");
+
+            for (Element element : cards) {
+                if (element.hasClass("ads_enabled")) {
+                    continue;
+                }
+                if (element.hasAttr("id") && element.attr("id").contains("ad")) {
+                    continue;
+                }
+
+                String linkUrl = parseRecipeLinks(element);
+                if (linkUrl == null) continue;
+
+                RecipeCard recipeCard = RecipeCard.builder()
+                        .id(cardCounter++)
+                        .linkUrl(linkUrl)
+                        .title(parseRecipeTitle(element))
+                        .description(parseRecipeDescription(element))
+                        .imageUrl(parseImage(element))
+                        .calories(parseRecipeKKal(element))
+                        .approximateTime(parseRecipeTime(element))
+                        .ingredients(parseRecipeIngredients(element))
+                        .build();
+                recipeCards.add(recipeCard);
+            }
+
+            log.info("Найдено {} рецептов на странице {}", recipeCards.size(), pageNumber);
+
+        } catch (Exception e) {
+            log.error("Ошибка при парсинге страницы {}: {}", urlRes, e.getMessage());
+        }
+
+        return recipeCards;
+    }
+
+    public String parseRecipeDetails(String url) {
         String urlRes = BASE_URL + url;
         ObjectMapper mapper = new ObjectMapper();
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
@@ -40,63 +79,20 @@ public class ThousandMenuParser {
             ObjectNode recipe = mapper.createObjectNode();
             recipe.put("description", element.text());
 
-            System.out.println("Описание: " + element.text());
-
             ArrayNode allSteps = instructionParserFactory.parseSteps(document, mapper);
 
-            if (allSteps.isEmpty()) {
-                System.out.println("Тут нет списка шагов");
-            } else {
+            if (!allSteps.isEmpty()) {
                 recipe.set("steps", allSteps);
-                System.out.println(mapper.writeValueAsString(recipe));
             }
 
+            return mapper.writeValueAsString(recipe);
+
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Ошибка при парсинге деталей {}: {}", urlRes, e.getMessage());
+            return "{}";
         }
     }
-    public void parseAllPages(String url, int range) {
-        for (int i = 1; i < range; i++) {
-            List<RecipeCard> recipeCards = new ArrayList<>();
-            stringBuilder.delete(0, stringBuilder.length());
-            String urlRes = stringBuilder.append(url).append("/").append(i).toString();
-            System.out.println("-".repeat(60));
-            System.out.println(urlRes);
-            try {
-                Long cardCounter = 0L;
-                Document doc = Jsoup.connect(urlRes).get();
-                Elements cards = doc.select("div.cn-item");
-                for (Element element : cards) {
-                    if (element.hasClass("ads_enabled")) {
-                        continue;
-                    }
-                    if (element.hasAttr("id") && cards.attr("id").contains("ad")) {
-                        continue;
-                    }
-                    RecipeCard recipeCard = RecipeCard.builder()
-                            .id(cardCounter++)
-                            .linkUrl(parseRecipeLinks(element))
-                            .title(parseRecipeTitle(element))
-                            .description(parseRecipeDescription(element))
-                            .imageUrl(parseImage(element))
-                            .calories(parseRecipeKKal(element))
-                            .approximateTime(parseRecipeTime(element))
-                            .ingredients(parseRecipeIngredients(element))
-                            .build();
-                    recipeCards.add(recipeCard);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            for (var recipeCard : recipeCards) {
-                String cardUrl = recipeCard.getLinkUrl();
-                System.out.println(BASE_URL + cardUrl);
-                cardParse(cardUrl);
-//                System.out.println(recipeCard);
-            }
-        }
-//        return recipeCards;
-    }
+
     private String parseImage(Element card) {
         Elements imgTag = card.select("div.photo a img");
         String imageUrl = imgTag.attr("data-original");
@@ -105,6 +101,7 @@ public class ThousandMenuParser {
         }
         return imageUrl;
     }
+
     private String parseRecipeLinks(Element card) {
         Elements recipeLinks = card.select("div.photo").select("a");
         String link = recipeLinks.attr("href");
@@ -123,24 +120,39 @@ public class ThousandMenuParser {
         List<String> ingredientsList = new ArrayList<>();
         Elements info = card.select("div.info-preview");
         Elements ingredients = info.select("div.mt-1 div.is-flex div.controls div.mt-2");
+
         for (Element element : ingredients) {
-            ingredientsList.add(element.text());
+            String ingredientText = element.text();
+
+            if (ingredientText.contains(",")) {
+                String[] parts = ingredientText.split(",");
+                for (String part : parts) {
+                    String trimmed = part.trim();
+                    if (!trimmed.isEmpty()) {
+                        ingredientsList.add(trimmed);
+                    }
+                }
+            } else {
+                ingredientsList.add(ingredientText);
+            }
         }
+
         return ingredientsList;
     }
-
     private String parseRecipeTime(Element card) {
         Elements info = card.select("div.info-preview");
         return info.select("div.icons div.level-right")
                 .first()
                 .text();
     }
+
     private String parseRecipeKKal(Element card) {
         Elements info = card.select("div.info-preview");
         return info.select("div.icons div.level-left")
                 .first()
                 .text();
     }
+
     private String parseRecipeDescription(Element card) {
         Elements info = card.select("div.info-preview");
         return info.select("div.preview-text")

@@ -1,6 +1,5 @@
 plugins {
     id("java")
-    jacoco
     id("org.springframework.boot") version "3.4.2"
     id("io.spring.dependency-management") version "1.1.7"
 }
@@ -16,6 +15,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-aop")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0")
 
     runtimeOnly("org.postgresql:postgresql")
     implementation("org.jsoup:jsoup:1.17.2")

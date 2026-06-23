@@ -1,4 +1,4 @@
-package smartfridge.parser;
+package smartfridge.parser.parsers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -7,6 +7,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
 import org.jsoup.nodes.Document;
+import smartfridge.parser.BaseInstructionParser;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
