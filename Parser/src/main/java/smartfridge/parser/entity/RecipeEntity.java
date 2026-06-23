@@ -22,6 +22,9 @@ public class RecipeEntity {
     @Column(nullable = false, length = 255)
     private String title;
 
+    @Column(unique = true, length = 255)
+    private String slug;
+
     @Column(columnDefinition = "TEXT")
     private String description;
 

@@ -5,14 +5,15 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RecognitionResponse {
-    private List<String> recognizedIngredients;
-    private Integer recipeCount;
-    private List<Recipe> recipes;
+public class SearchHistoryDto {
+    private Long id;
+    private List<String> ingredients;
+    private LocalDateTime createdAt;
 }

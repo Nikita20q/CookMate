@@ -6,6 +6,7 @@ import org.springframework.data.repository.query.Param;
 import smartfridge.entity.RecipeEntity;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface RecipeRepository extends JpaRepository<RecipeEntity, Long> {
 
@@ -30,4 +31,7 @@ public interface RecipeRepository extends JpaRepository<RecipeEntity, Long> {
     """, nativeQuery = true)
     List<RecipeEntity> findRecipesByIngredientsWithRanking(
             @Param("ingredientNames") List<String> ingredientNames);
+
+    Optional<RecipeEntity> findBySlug(String slug);
+    boolean existsBySlug(String slug);
 }

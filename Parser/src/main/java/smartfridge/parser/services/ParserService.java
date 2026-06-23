@@ -10,8 +10,8 @@ import smartfridge.parser.entity.RecipeComponentEntity;
 import smartfridge.parser.entity.RecipeEntity;
 import smartfridge.parser.repository.IngredientRepository;
 import smartfridge.parser.repository.RecipeRepository;
+import smartfridge.parser.utils.SlugUtil;
 import smartfridge.recipe.model.RecipeCard;
-
 
 import java.util.List;
 import java.util.Optional;
@@ -25,9 +25,6 @@ public class ParserService {
     private final RecipeRepository recipeRepository;
     private final IngredientRepository ingredientRepository;
 
-    /**
-     * Парсит страницы ПО ОДНОЙ и сразу сохраняет в БД
-     */
     public void parseAndSave(String baseUrl, int pages) {
         log.info("Начинаем парсинг {} страниц с {}", pages, baseUrl);
 
@@ -62,9 +59,6 @@ public class ParserService {
         log.info("Парсинг завершен. Всего сохранено: {}, Пропущено: {}", totalSaved, totalSkipped);
     }
 
-    /**
-     * Сохраняет батч рецептов (одна страница)
-     */
     @Transactional
     public int[] saveRecipeBatch(List<RecipeCard> cards) {
         int saved = 0;
@@ -86,9 +80,6 @@ public class ParserService {
         return new int[]{saved, skipped};
     }
 
-    /**
-     * Сохраняет один рецепт в БД
-     */
     private boolean saveRecipe(RecipeCard card) {
         Optional<RecipeEntity> existing = recipeRepository.findBySourceUrl(card.getLinkUrl());
         if (existing.isPresent()) {
@@ -98,8 +89,16 @@ public class ParserService {
 
         String contentJson = parser.parseRecipeDetails(card.getLinkUrl());
 
+        String slug = generateSlugFromUrl(card);
+
+        if (recipeRepository.existsBySlug(slug)) {
+            log.warn("Slug {} уже существует, пропускаем рецепт", slug);
+            return false;
+        }
+
         RecipeEntity recipe = RecipeEntity.builder()
                 .title(card.getTitle())
+                .slug(slug)
                 .description(card.getDescription())
                 .imageUrl(card.getImageUrl())
                 .sourceUrl(card.getLinkUrl())
@@ -111,13 +110,17 @@ public class ParserService {
         for (String ingredientName : card.getIngredients()) {
             if (ingredientName == null || ingredientName.trim().isEmpty()) continue;
 
-            IngredientEntity ingredient = ingredientRepository.findByName(ingredientName.trim())
-                    .orElseGet(() -> {
-                        IngredientEntity newIngredient = IngredientEntity.builder()
-                                .name(ingredientName.trim())
-                                .build();
-                        return ingredientRepository.save(newIngredient);
-                    });
+            String normalizedName = ingredientName.trim();
+
+            IngredientEntity ingredient = ingredientRepository.findByName(normalizedName)
+                    .orElse(null);
+
+            if (ingredient == null) {
+                ingredient = IngredientEntity.builder()
+                        .name(normalizedName)
+                        .build();
+                ingredient = ingredientRepository.save(ingredient);
+            }
 
             RecipeComponentEntity component = RecipeComponentEntity.builder()
                     .recipe(recipe)
@@ -130,8 +133,18 @@ public class ParserService {
         }
 
         recipeRepository.save(recipe);
-        log.info("Сохранен рецепт: {}", recipe.getTitle());
+        log.info("Сохранен рецепт: {} (slug: {})", recipe.getTitle(), slug);
         return true;
+    }
+
+    private String generateSlugFromUrl(RecipeCard card) {
+        Long idFromUrl = SlugUtil.extractIdFromUrl(card.getLinkUrl());
+
+        if (idFromUrl != null) {
+            return SlugUtil.generateSlug(card.getTitle(), idFromUrl);
+        }
+
+        return SlugUtil.generateSlug(card.getTitle(), System.currentTimeMillis());
     }
 
     private Integer parseMinutes(String timeStr) {

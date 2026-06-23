@@ -19,6 +19,7 @@ public class RecipeMapper {
         return Recipe.builder()
                 .id(entity.getId())
                 .title(entity.getTitle())
+                .slug(entity.getSlug())
                 .description(entity.getDescription())
                 .image(entity.getImageUrl())
                 .calories(entity.getCalories())

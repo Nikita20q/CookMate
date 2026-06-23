@@ -5,51 +5,21 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b39328fe-4654-477b-b837-b08a2c52f1e6" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/controller/ParserController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/entity/IngredientEntity.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/entity/RecipeComponentEntity.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/entity/RecipeEntity.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/repository/IngredientRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/repository/RecipeRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/services/ParserService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../backend/.idea/AndroidProjectSystem.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../backend/.idea/gradle.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../backend/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/CookMateBackendApplication.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/config/WebConfig.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/controller/HealthController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/controller/RecipeController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/dto/Recipe.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/dto/RecipeDetail.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/dto/RecipeSearchResponse.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/entity/IngredientEntity.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/entity/RecipeComponentEntity.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/entity/RecipeEntity.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/mapper/RecipeMapper.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/model/Pfc.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/model/RecipeComponent.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/repository/RecipeRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/security/annotation/CurrentUserId.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/security/resolver/CurrentUserIdResolver.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/service/RecipeService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../backend/src/main/resources/application.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Gateway/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../Gateway/.idea/gradle.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Gateway/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../Gateway/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/utils/SlugUtil.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/smartfridge/parser/DivParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/parsers/DivParser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/smartfridge/parser/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/ParserApplication.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/smartfridge/parser/OlParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/parsers/OlParser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/smartfridge/parser/ParagraphListParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/parsers/ParagraphListParser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/smartfridge/parser/ThousandMenuParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/ThousandMenuParser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/smartfridge/recipe/model/RecipeCard.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/smartfridge/recipe/model/RecipeCard.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/application.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/smartfridge/parser/entity/RecipeEntity.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/entity/RecipeEntity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/smartfridge/parser/repository/RecipeRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/repository/RecipeRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/smartfridge/parser/services/ParserService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/services/ParserService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/schema.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/schema.sql" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/config/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/config/SecurityConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/controller/RecipeController.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/controller/RecipeController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/dto/Recipe.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/dto/Recipe.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/entity/RecipeEntity.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/entity/RecipeEntity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/mapper/RecipeMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/mapper/RecipeMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/repository/RecipeRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/repository/RecipeRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/service/RecipeService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/service/RecipeService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/test/resources/application.yml" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -95,7 +65,7 @@
     "Spring Boot.ParserApplication.executor": "Run",
     "git-widget-placeholder": "Backend",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "/home/nikita/MyProjects/MGTU/CookMateBackend/backend",
+    "last_opened_file_path": "/home/nikita/MyProjects/MGTU/CookMateBackend/Parser",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -127,6 +97,7 @@
       <updated>1762172544778</updated>
       <workItem from="1781817800885" duration="177000" />
       <workItem from="1782052125049" duration="4203000" />
+      <workItem from="1782204195234" duration="997000" />
     </task>
     <servers />
   </component>

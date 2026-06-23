@@ -23,6 +23,9 @@ public class RecipeEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(unique = true, length = 255)
+    private String slug;
+
     private String imageUrl;
 
     @Column(columnDefinition = "jsonb")

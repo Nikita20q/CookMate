@@ -37,6 +37,13 @@ public class RecipeService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public Recipe getRecipeBySlug(String slug) {
+        RecipeEntity entity = recipeRepository.findBySlug(slug)
+                .orElseThrow(() -> new RuntimeException("Рецепт не найден: " + slug));
+        return recipeMapper.toRecipe(entity);
+    }
+
     public List<Recipe> getFavoriteRecipes(Long userId) {
         // TODO: Запрос в БД на получение избранного
         return Collections.emptyList();

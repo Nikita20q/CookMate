@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 public class Recipe {
     private Long id;
     private String title;
+    private String slug;
     private String description;
     private String image;
     private Integer calories;
