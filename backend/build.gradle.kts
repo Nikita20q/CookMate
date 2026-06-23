@@ -8,6 +8,8 @@ group = "org.example"
 version = "1.0-SNAPSHOT"
 
 repositories {
+    maven { url = uri("https://maven.aliyun.com/repository/public") }
+    maven { url = uri("https://mirrors.cloud.tencent.com/nexus/repository/maven-public/") }
     mavenCentral()
 }
 

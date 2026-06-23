@@ -10,7 +10,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     IOU_NMS=0.45
 
 WORKDIR /app
-
+ENV PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
