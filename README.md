@@ -81,6 +81,7 @@ S3_REGION=your-s3-region
 
 #### URLS
 SERVER_URL=http://localhost:8080
+
 GATEWAY_URL=http://localhost:8090
 
 ### Загрузка моделей ml
