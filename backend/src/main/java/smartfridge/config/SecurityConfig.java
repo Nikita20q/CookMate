@@ -39,25 +39,31 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/v3/api-docs/**",
-                                "/v3/api-docs.yaml",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/swagger-resources/**",
-                                "/webjars/**"
-                        ).permitAll()
-
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         .requestMatchers("/api/v1/health").permitAll()
 
                         .requestMatchers("/api/v1/auth/**").permitAll()
 
-                        .requestMatchers(HttpMethod.GET, "/api/v1/recipes").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/recipes/recipe/**").permitAll()
-                        .requestMatchers("/api/v1/recipes/recognize").permitAll()
                         .requestMatchers("/api/v1/recipes/search").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/recipes/recipe/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/recipes").permitAll()
+                        .requestMatchers("/api/v1/recipes/recognize").permitAll()
+
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/swagger-resources/**",
+                                "/swagger-resources",
+                                "/configuration/ui",
+                                "/configuration/security",
+                                "/v3/api-docs",
+                                "/v3/api-docs/**",
+                                "/v3/api-docs.yaml",
+                                "/api-docs/**",
+                                "/api-docs",
+                                "/webjars/**"
+                        ).permitAll()
 
                         .requestMatchers("/api/v1/favorites/**").authenticated()
                         .requestMatchers("/api/v1/search-history/**").authenticated()
