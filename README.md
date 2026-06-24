@@ -83,6 +83,17 @@ S3_REGION=your-s3-region
 SERVER_URL=http://localhost:8080
 GATEWAY_URL=http://localhost:8090
 
+### Загрузка моделей ml
+
+Переходим в папку detection_service и выполняем:
+
+sudo apt install git-lfs
+
+git lfs install
+git lfs ls-files
+
+git lfs pull
+
 ### Запуск
 
 docker-compose up -d
