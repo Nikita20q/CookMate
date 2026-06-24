@@ -37,11 +37,15 @@ app:
 springdoc:
   api-docs:
     path: /v3/api-docs
+    enabled: true
   swagger-ui:
     path: /swagger-ui.html
+    enabled: true
+    url: ${app.server-url}/v3/api-docs
+    config-url: ${app.server-url}/v3/api-docs/swagger-config
     urls:
       - name: Backend API
-        url: ${SERVER_URL:http://localhost:8080}
+        url: ${app.server-url}/v3/api-docs
 
 jwt:
   secret: ${JWT_SECRET}
