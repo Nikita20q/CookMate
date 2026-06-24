@@ -29,6 +29,20 @@ spring:
           timeout: 30000
           writetimeout: 30000
 
+app:
+  server-url: ${SERVER_URL:http://localhost:8080}
+  gateway-url: ${GATEWAY_URL:http://localhost:8090}
+  cors-allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:8080}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: Backend API
+        url: ${SERVER_URL:http://localhost:8080}
+
 jwt:
   secret: ${JWT_SECRET}
   expiration: 86400000

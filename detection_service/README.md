@@ -1,6 +1,11 @@
 # COOKMATE
 Микросервис распознавания продуктов на изображениях (холодильник, стол, тележка/корзинка) на основе ансамбля из двух моделей YOLOv11.
 
+    maven { url = uri("https://maven.aliyun.com/repository/public") }
+    maven { url = uri("https://maven.aliyun.com/repository/gradle-plugin") }
+    maven { url = uri("https://maven.aliyun.com/repository/spring") }
+
+
 ## 📌 Оглавление
 - [Структура проекта](#-структура-проекта)
 - [Что реализовано](#-что-реализовано)
