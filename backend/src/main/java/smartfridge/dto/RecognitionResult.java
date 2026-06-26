@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import smartfridge.entity.RecipeEntity;
 
 import java.util.List;
 
@@ -12,9 +11,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RecognitionResponse {
-    private List<String> recognizedIngredients;
+public class RecognitionResult {
+    private List<String> ingredients;
     private List<DetectionDto> detections;
-    private int recipeCount;
-    private List<Recipe> recipes;
 }

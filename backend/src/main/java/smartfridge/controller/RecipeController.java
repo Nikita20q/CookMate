@@ -61,7 +61,10 @@ public class RecipeController {
             return ResponseEntity.badRequest().build();
         }
 
-        List<String> ingredients = recipeService.recognizeIngredients(file);
+        RecognitionResult recognitionResult = recipeService.recognizeIngredients(file);
+        List<String> ingredients = recognitionResult.getIngredients();
+        List<DetectionDto> detections = recognitionResult.getDetections();
+
         List<Recipe> recipes = recipeService.findRecipesByIngredients(ingredients);
 
         if (userId != null) {
@@ -74,6 +77,7 @@ public class RecipeController {
 
         return ResponseEntity.ok(RecognitionResponse.builder()
                 .recognizedIngredients(ingredients)
+                .detections(detections)
                 .recipeCount(recipes.size())
                 .recipes(recipes)
                 .build());
