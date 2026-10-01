@@ -96,6 +96,11 @@ services:
       - 1.1.1.1 # Cloudflare DNS
       - 77.88.8.8 # Яндекс DNS
       - 77.88.8.1 # Яндекс DNS
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    restart: unless-stopped
 
 volumes:
   postgres_data:
