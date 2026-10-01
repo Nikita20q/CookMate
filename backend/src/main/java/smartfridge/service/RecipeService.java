@@ -1,11 +1,15 @@
 package smartfridge.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import smartfridge.dto.DetectionDto;
 import smartfridge.dto.Recipe;
+import smartfridge.dto.RecognitionResult;
 import smartfridge.entity.RecipeEntity;
+import smartfridge.exceptions.BusinessException;
 import smartfridge.mapper.RecipeMapper;
 import smartfridge.repository.RecipeRepository;
 
@@ -15,6 +19,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class RecipeService {
     private final RecipeRepository recipeRepository;
     private final RecipeMapper recipeMapper;
@@ -44,20 +49,37 @@ public class RecipeService {
         return recipeMapper.toRecipe(entity);
     }
 
-    public List<Recipe> getFavoriteRecipes(Long userId) {
-        // TODO: Запрос в БД на получение избранного
-        return Collections.emptyList();
-    }
+    @Transactional
+    public RecognitionResult recognizeIngredients(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw BusinessException.badRequest("Файл не загружен");
+        }
 
-    public void addFavorite(Long userId, Long recipeId) {
-        // TODO: Сохранение в таблицу favourite_recipes
-    }
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw BusinessException.badRequest("Файл должен быть изображением (JPEG, PNG)");
+        }
 
-    public void removeFavorite(Long userId, Long recipeId) {
-        // TODO: Удаление из таблицы favourite_recipes
-    }
+        long fileSize = file.getSize();
+        if (fileSize > 10 * 1024 * 1024) {
+            throw BusinessException.badRequest("Размер файла превышает 10MB");
+        }
 
-    public List<String> recognizeIngredients(MultipartFile file) {
-        return mlService.recognizeIngredients(file);
+        log.info("Распознавание ингредиентов для файла: {} ({} bytes)",
+                file.getOriginalFilename(), fileSize);
+
+        List<DetectionDto> detections = mlService.recognizeIngredients(file);
+
+        List<String> ingredients = detections.stream()
+                .map(DetectionDto::getClassName)
+                .distinct()
+                .collect(Collectors.toList());
+
+        log.info("Распознаны ингредиенты: {}", ingredients);
+
+        return RecognitionResult.builder()
+                .ingredients(ingredients)
+                .detections(detections)
+                .build();
     }
 }

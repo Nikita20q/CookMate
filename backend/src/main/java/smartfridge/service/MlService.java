@@ -10,6 +10,8 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import smartfridge.dto.DetectionDto;
+import smartfridge.exceptions.BusinessException;
 
 import java.io.IOException;
 import java.util.*;
@@ -91,9 +93,9 @@ public class MlService {
     );
 
     /**
-     * Отправляет фото на ML-сервис и получает список ингредиентов на русском
+     * Отправляет фото на ML-сервис и возвращает список детекций
      */
-    public List<String> recognizeIngredients(MultipartFile file) {
+    public List<DetectionDto> recognizeIngredients(MultipartFile file) {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
@@ -119,7 +121,7 @@ public class MlService {
             );
 
             if (response.getBody() == null) {
-                throw new RuntimeException("ML-сервис вернул пустой ответ");
+                throw BusinessException.badRequest("ML-сервис вернул пустой ответ");
             }
 
             List<Map<String, Object>> detections =
@@ -130,25 +132,38 @@ public class MlService {
                 return Collections.emptyList();
             }
 
-            Set<String> englishClasses = detections.stream()
-                    .map(det -> (String) det.get("class"))
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toSet());
+            List<DetectionDto> result = detections.stream()
+                    .map(det -> {
+                        String englishClass = (String) det.get("class");
+                        String russianClass = CLASS_TO_RUSSIAN.getOrDefault(englishClass, englishClass);
 
-            List<String> russianIngredients = englishClasses.stream()
-                    .map(cls -> CLASS_TO_RUSSIAN.getOrDefault(cls, cls))
-                    .distinct()
+                        Double confidence = det.get("confidence") instanceof Number
+                                ? ((Number) det.get("confidence")).doubleValue()
+                                : 0.0;
+
+                        List<Double> bbox = ((List<Number>) det.get("bbox")).stream()
+                                .map(Number::doubleValue)
+                                .collect(Collectors.toList());
+
+                        return DetectionDto.builder()
+                                .className(russianClass)
+                                .confidence(confidence)
+                                .bbox(bbox)
+                                .build();
+                    })
                     .collect(Collectors.toList());
 
-            log.info("ML распознал: {} → {}", englishClasses, russianIngredients);
-            return russianIngredients;
+            log.info("ML распознал {} объектов", result.size());
+            return result;
 
+        } catch (BusinessException e) {
+            throw e;
         } catch (IOException e) {
             log.error("Ошибка при чтении файла: {}", e.getMessage());
-            throw new RuntimeException("Ошибка при обработке фото", e);
+            throw BusinessException.badRequest("Ошибка при обработке фото");
         } catch (Exception e) {
             log.error("Ошибка при вызове ML-сервиса: {}", e.getMessage());
-            throw new RuntimeException("ML-сервис недоступен: " + e.getMessage(), e);
+            throw BusinessException.badRequest("ML-сервис недоступен. Попробуйте позже.");
         }
     }
 }

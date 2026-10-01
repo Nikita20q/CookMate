@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import smartfridge.exceptions.BusinessException;
 
 @Service
 @RequiredArgsConstructor
@@ -43,7 +44,7 @@ public class EmailService {
             log.info("Email с кодом {} отправлен на {}", code, toEmail);
         } catch (Exception e) {
             log.error("Ошибка при отправке email на {}: {}", toEmail, e.getMessage(), e);
-            throw new RuntimeException("Не удалось отправить email: " + e.getMessage());
+            throw BusinessException.badRequest("Не удалось отправить email. Проверьте настройки SMTP.");
         }
     }
 }

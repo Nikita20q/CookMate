@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import smartfridge.dto.Recipe;
 import smartfridge.entity.RecipeEntity;
 import smartfridge.entity.UserFavoriteEntity;
+import smartfridge.exceptions.BusinessException;
 import smartfridge.mapper.RecipeMapper;
 import smartfridge.repository.RecipeRepository;
 import smartfridge.repository.UserFavoriteRepository;
@@ -35,7 +36,7 @@ public class FavoriteService {
     @Transactional
     public void addFavorite(Long userId, Long recipeId) {
         if (!recipeRepository.existsById(recipeId)) {
-            throw new RuntimeException("Рецепт не найден: " + recipeId);
+            throw BusinessException.notFound("Рецепт", recipeId);
         }
 
         if (favoriteRepository.existsByUserIdAndRecipeId(userId, recipeId)) {

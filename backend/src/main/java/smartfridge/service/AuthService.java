@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import smartfridge.dto.*;
 import smartfridge.entity.UserEntity;
+import smartfridge.exceptions.BusinessException;
 import smartfridge.repository.UserRepository;
 import smartfridge.security.utils.JwtUtil;
 
@@ -23,13 +24,10 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final EmailService emailService;
 
-    /**
-     * Регистрация нового пользователя
-     */
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Пользователь с таким email уже существует");
+            throw BusinessException.conflict("Пользователь с email '" + request.getEmail() + "' уже существует");
         }
 
         String verificationCode = RandomStringUtils.randomNumeric(6);
@@ -56,20 +54,23 @@ public class AuthService {
                 .build();
     }
 
-    /**
-     * Подтверждение email
-     */
     @Transactional
     public AuthResponse verifyEmail(VerifyEmailRequest request) {
         UserEntity user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+                .orElseThrow(() -> BusinessException.notFound("Пользователь", request.getEmail()));
 
-        if (!user.getVerificationCode().equals(request.getCode())) {
-            throw new RuntimeException("Неверный код подтверждения");
+        if (Boolean.TRUE.equals(user.getEmailVerified())) {
+            throw BusinessException.conflict("Email уже подтверждён");
         }
 
-        if (user.getVerificationCodeExpiry().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Срок действия кода истёк. Запросите новый код.");
+        if (user.getVerificationCode() == null ||
+                !user.getVerificationCode().equals(request.getCode())) {
+            throw BusinessException.badRequest("Неверный код подтверждения");
+        }
+
+        if (user.getVerificationCodeExpiry() != null &&
+                LocalDateTime.now().isAfter(user.getVerificationCodeExpiry())) {
+            throw BusinessException.badRequest("Срок действия кода истёк. Запросите новый код.");
         }
 
         user.setEmailVerified(true);
@@ -89,16 +90,13 @@ public class AuthService {
                 .build();
     }
 
-    /**
-     * Повторная отправка кода подтверждения
-     */
     @Transactional
     public void resendVerificationCode(String email) {
         UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+                .orElseThrow(() -> BusinessException.notFound("Пользователь", email));
 
-        if (user.getEmailVerified()) {
-            throw new RuntimeException("Email уже подтверждён");
+        if (Boolean.TRUE.equals(user.getEmailVerified())) {
+            throw BusinessException.conflict("Email уже подтверждён");
         }
 
         String newCode = RandomStringUtils.randomNumeric(6);
@@ -111,19 +109,16 @@ public class AuthService {
         log.info("Новый код подтверждения отправлен на {}", email);
     }
 
-    /**
-     * Вход в систему (только для подтверждённых пользователей)
-     */
     public AuthResponse login(LoginRequest request) {
         UserEntity user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+                .orElseThrow(() -> BusinessException.badRequest("Неверный email или пароль"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new RuntimeException("Неверный пароль");
+            throw BusinessException.badRequest("Неверный email или пароль");
         }
 
-        if (!user.getEmailVerified()) {
-            throw new RuntimeException("Email не подтверждён. Проверьте почту.");
+        if (!Boolean.TRUE.equals(user.getEmailVerified())) {
+            throw BusinessException.forbidden("Email не подтверждён. Проверьте почту.");
         }
 
         String token = jwtUtil.generateToken(user.getId(), user.getEmail());

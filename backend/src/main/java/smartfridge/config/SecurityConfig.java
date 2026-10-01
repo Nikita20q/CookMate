@@ -1,5 +1,6 @@
 package smartfridge.config;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -17,6 +18,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import smartfridge.security.utils.JwtFilter;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -38,18 +40,39 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                // Обработка ошибок авторизации
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.getWriter().write(String.format(
+                                    "{\"timestamp\":\"%s\",\"title\":\"Требуется авторизация\"," +
+                                            "\"message\":\"Для доступа к этому ресурсу необходимо войти в систему\"," +
+                                            "\"status\":401}",
+                                    LocalDateTime.now()
+                            ));
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.getWriter().write(String.format(
+                                    "{\"timestamp\":\"%s\",\"title\":\"Доступ запрещён\"," +
+                                            "\"message\":\"У вас нет прав для выполнения этого действия\"," +
+                                            "\"status\":403}",
+                                    LocalDateTime.now()
+                            ));
+                        })
+                )
+
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
                         .requestMatchers("/api/v1/health").permitAll()
-
                         .requestMatchers("/api/v1/auth/**").permitAll()
-
                         .requestMatchers("/api/v1/recipes/search").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/recipes/recipe/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/recipes").permitAll()
                         .requestMatchers("/api/v1/recipes/recognize").permitAll()
-
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
@@ -64,10 +87,8 @@ public class SecurityConfig {
                                 "/api-docs",
                                 "/webjars/**"
                         ).permitAll()
-
                         .requestMatchers("/api/v1/favorites/**").authenticated()
                         .requestMatchers("/api/v1/search-history/**").authenticated()
-
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
