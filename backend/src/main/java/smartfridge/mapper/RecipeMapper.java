@@ -25,6 +25,10 @@ public class RecipeMapper {
                 .calories(entity.getCalories())
                 .approximateTime(formatTime(entity.getPrepTimeMinutes()))
                 .components(componentNames)
+                .contentJson(entity.getContentJson())
+                .protein(entity.getProtein())
+                .fat(entity.getFat())
+                .carbohydrates(entity.getCarbohydrates())
                 .build();
     }
 
