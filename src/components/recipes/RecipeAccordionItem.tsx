@@ -6,6 +6,7 @@ import Ingredient from "../ui/Ingredient";
 import Hint from "../ui/Hint";
 import cn from "@/utils/classname-func";
 import Button from "../ui/Button";
+import { Link } from "@tanstack/react-router";
 
 interface Props {
   recipe: Recipe;
@@ -115,7 +116,9 @@ const RecipeAccordionItem = ({ recipe, currentIngredients }: Props) => {
 
             <div className="flex flex-col justify-between">
               <div />
-              <Button text="Посмотреть полный рецепт" nofocus />
+              <Link to={"/recipes/$acronym"} params={{ acronym: recipe.slug }}>
+                <Button text="Посмотреть полный рецепт" nofocus />
+              </Link>
             </div>
           </div>
         </div>

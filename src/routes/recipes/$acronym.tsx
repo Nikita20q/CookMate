@@ -1,9 +1,11 @@
+import { RecipeDetailPage } from "@/pages/RecipeDetailPage";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/recipes/$acronym")({
-  component: RouteComponent,
-});
+  component: RecipeDetailPage,
+  loader: ({ params }) => {
+    const { acronym } = params;
 
-function RouteComponent() {
-  return <div>Hello "/recipes/$acronym"!</div>;
-}
+    return { recipeSlug: acronym };
+  },
+});
