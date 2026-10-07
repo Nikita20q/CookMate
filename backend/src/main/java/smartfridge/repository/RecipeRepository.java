@@ -17,20 +17,36 @@ public interface RecipeRepository extends JpaRepository<RecipeEntity, Long> {
      * @return отсортированный список рецептов (от большего совпадения к меньшему)
      */
     @Query(value = """
-    SELECT r.*,
-           COUNT(rc.ingredient_id) AS match_count,
-           (SELECT COUNT(*) FROM recipe_components rc2 WHERE rc2.recipe_id = r.id) AS total_recipe_ingredients,
-           ROUND((COUNT(rc.ingredient_id) * 100.0 / (SELECT COUNT(*) FROM recipe_components rc2 WHERE rc2.recipe_id = r.id)), 2) AS match_percent
+    WITH RecipeTotals AS (
+        SELECT recipe_id, COUNT(*) as total_count
+        FROM recipe_components
+        GROUP BY recipe_id
+    )
+    SELECT r.id
     FROM recipes r
     JOIN recipe_components rc ON r.id = rc.recipe_id
     JOIN ingredients i ON rc.ingredient_id = i.id
-    WHERE i.name IN :ingredientNames
-    GROUP BY r.id
-    ORDER BY match_percent DESC, match_count DESC
+    LEFT JOIN RecipeTotals rt ON r.id = rt.recipe_id
+    WHERE LOWER(i.name) IN :ingredientNames
+    GROUP BY r.id, rt.total_count
+    HAVING COUNT(rc.ingredient_id) >= :minMatches
+    ORDER BY 
+        CASE 
+            WHEN ROUND((COUNT(rc.ingredient_id) * 100.0 / NULLIF(COALESCE(rt.total_count, 0), 0)), 2) = 100.00 
+            THEN 0 
+            ELSE 1 
+        END ASC,
+        COUNT(rc.ingredient_id) DESC,
+        ROUND(
+            (COUNT(rc.ingredient_id) * 100.0 / NULLIF(COALESCE(rt.total_count, 0), 0)), 
+            2
+        ) DESC
     LIMIT 100
     """, nativeQuery = true)
-    List<RecipeEntity> findRecipesByIngredientsWithRanking(
-            @Param("ingredientNames") List<String> ingredientNames);
+    List<Long> findRecipeIdsByIngredients(
+            @Param("ingredientNames") List<String> ingredientNames,
+            @Param("minMatches") int minMatches
+    );
 
     Optional<RecipeEntity> findBySlug(String slug);
     boolean existsBySlug(String slug);
