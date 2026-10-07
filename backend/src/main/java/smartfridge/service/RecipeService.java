@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import smartfridge.config.AppConstants;
 import smartfridge.dto.DetectionDto;
 import smartfridge.dto.Recipe;
 import smartfridge.dto.RecognitionResult;
@@ -13,7 +14,9 @@ import smartfridge.exceptions.BusinessException;
 import smartfridge.mapper.RecipeMapper;
 import smartfridge.repository.RecipeRepository;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,18 +29,25 @@ public class RecipeService {
     private final MlService mlService;
 
     @Transactional(readOnly = true)
-    public List<Recipe> findRecipesByIngredients(List<String> ingredientNames) {
-        if (ingredientNames == null || ingredientNames.isEmpty()) {
+    public List<Recipe> findRecipesByIngredients(List<String> ingredients) {
+        if (ingredients == null || ingredients.isEmpty()) {
             return Collections.emptyList();
         }
 
-        List<String> normalizedNames = ingredientNames.stream()
-                .map(name -> name.toLowerCase().trim())
+        List<String> normalizedNames = ingredients.stream()
+                .map(String::trim)
+                .map(String::toLowerCase)
+                .filter(name -> !name.isEmpty())
+                .distinct()
                 .collect(Collectors.toList());
 
-        List<RecipeEntity> recipes = recipeRepository.findRecipesByIngredientsWithRanking(normalizedNames);
+        int minMatches = Math.max(1, normalizedNames.size() / 3);
 
-        return recipes.stream()
+        List<Long> recipeIds = recipeRepository.findRecipeIdsByIngredients(normalizedNames, minMatches);
+
+        return recipeIds.stream()
+                .map(id -> recipeRepository.findById(id).orElse(null))
+                .filter(entity -> entity != null)
                 .map(recipeMapper::toRecipe)
                 .collect(Collectors.toList());
     }
@@ -75,10 +85,17 @@ public class RecipeService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        log.info("Распознаны ингредиенты: {}", ingredients);
+        List<String> mergedIngredients = new ArrayList<>(new LinkedHashSet<>(ingredients));
+        for (String defaultIng : AppConstants.DEFAULT_PANTRY_INGREDIENTS) {
+            if (!mergedIngredients.contains(defaultIng)) {
+                mergedIngredients.add(defaultIng);
+            }
+        }
+
+        log.info("Распознаны ингредиенты (с базовыми): {}", mergedIngredients);
 
         return RecognitionResult.builder()
-                .ingredients(ingredients)
+                .ingredients(mergedIngredients)
                 .detections(detections)
                 .build();
     }
