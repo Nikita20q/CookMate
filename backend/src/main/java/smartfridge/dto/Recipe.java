@@ -18,4 +18,8 @@ public class Recipe {
     private Integer calories;
     private String approximateTime;
     private String[] components;
+    private String contentJson;
+    private Integer protein;
+    private Integer fat;
+    private Integer carbohydrates;
 }
