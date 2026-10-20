@@ -6,7 +6,7 @@
 
 ## Локальная разработка
 
-Используйте Node.js 24 и npm. Из корня монорепозитория:
+Используйте Node.js 24 и npm 11.19.1 (как в закреплённом Docker-образе). Из корня монорепозитория:
 
 ```sh
 cd frontend
@@ -23,7 +23,7 @@ npm run lint
 npm run preview
 ```
 
-Зависимости фиксируются в `package-lock.json`. При их изменении используйте npm; устаревший `pnpm-lock.yaml` удалён. Файл `src/routeTree.gen.ts` генерируется TanStack Router при запуске Vite.
+Зависимости фиксируются в `package-lock.json`. Lock-файл проверен в чистом Alpine-контейнере с npm 11.19.1. При его обновлении используйте ту же версию npm и проверяйте `docker compose build frontend`: успешная локальная установка старой версией npm не заменяет эту проверку. При их изменении используйте npm; устаревший `pnpm-lock.yaml` удалён. Файл `src/routeTree.gen.ts` генерируется TanStack Router при запуске Vite.
 
 ## Docker
 
