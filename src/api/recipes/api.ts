@@ -1,7 +1,7 @@
 import type { RecognizeResponse, SearchHistoryResponse } from "./types";
 import apiClient from "../apiClient";
 import { RECIPES_ENDPOINTS } from "./endpoints";
-import type { Recipe } from "@/types/recipes";
+import type { Recipe, RecipeDetail } from "@/types/recipes";
 
 export const recipesApi = {
   getSearchHistory: async (): Promise<SearchHistoryResponse> => {
@@ -23,7 +23,7 @@ export const recipesApi = {
     return apiClient.post(RECIPES_ENDPOINTS.search, { ingredients });
   },
 
-  getBySlug: (recipeSlug: string): Promise<Recipe> => {
+  getBySlug: (recipeSlug: string): Promise<RecipeDetail> => {
     return apiClient.get(`${RECIPES_ENDPOINTS.getById}/${recipeSlug}`);
   },
 };

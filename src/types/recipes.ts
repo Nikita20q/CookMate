@@ -13,12 +13,14 @@ export interface RecipeDetail {
   id: string;
   title: string;
   image: string;
-  components: RecipeComponent[];
+  components: string[];
   description: string;
   calories?: number;
-  pfc?: PFCType;
+  protein: number;
+  fat: number;
+  carbohydrates: number;
   approximateTime: string;
-  content: string;
+  contentJson: string;
 }
 
 export interface RecipeComponent {
@@ -26,10 +28,4 @@ export interface RecipeComponent {
   quantity: string;
   measurement: string;
   available: boolean;
-}
-
-export interface PFCType {
-  protein: number;
-  fat: number;
-  carbohydrates: number;
 }
