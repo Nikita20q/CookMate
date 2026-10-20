@@ -23,7 +23,7 @@ const LoginPage = () => {
       const result = await authApi.login(data.email.trim(), data.password);
       useAuthStore.getState().setAccessToken(result.token);
       navigate({ to: "/" });
-    } catch (e) {
+    } catch {
       setIsError(true);
     }
   };

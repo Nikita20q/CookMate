@@ -46,7 +46,7 @@ const RegisterPage = () => {
       authApi.register(data.email.trim(), data.password);
       setShowConfirmCode(true);
       // navigate({ to: ConfirmCodeRoute.to });
-    } catch (e) {
+    } catch {
       setIsError(true);
     }
   };

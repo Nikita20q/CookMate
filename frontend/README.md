@@ -1,73 +1,56 @@
-# React + TypeScript + Vite
+# CookMate Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Единственный рабочий фронтенд находится в `CookMate/frontend`. Отдельный репозиторий `cookmate` перенесён сюда вместе с историей и локальными изменениями. Backend, Gateway, Parser и ML находятся вне области фронтенд-разработки.
 
-Currently, two official plugins are available:
+Стек: React, TypeScript, Vite, TanStack Router/Query, Zustand, Tailwind CSS.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Локальная разработка
 
-## React Compiler
+Используйте Node.js 24 и npm. Из корня монорепозитория:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```sh
+cd frontend
+npm ci
+cp .env.example .env
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Если `.env` уже существует, сохраните его настройки. `VITE_API_BASE_URL` задаёт адрес API, доступный браузеру; пример использует локальный Gateway на порту 8090. Переменные Vite входят в клиентскую сборку: секреты в них хранить нельзя.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```sh
+npm run build
+npm run lint
+npm run preview
 ```
+
+Зависимости фиксируются в `package-lock.json`. При их изменении используйте npm; устаревший `pnpm-lock.yaml` удалён. Файл `src/routeTree.gen.ts` генерируется TanStack Router при запуске Vite.
+
+## Docker
+
+Из корня монорепозитория:
+
+```sh
+docker compose up --build frontend
+```
+
+Фронтенд доступен на порту 3000. Для сборки с явным адресом API:
+
+```sh
+docker compose build --build-arg VITE_API_BASE_URL=http://localhost:8090/api/v1 frontend
+docker compose up -d frontend
+```
+
+Адрес API задаётся при сборке; для его изменения нужен новый образ. Локальный `.env` не включается в Docker-контекст. `frontend/docker-compose.yml` сохранён из отдельного репозитория и позволяет запускать только фронтенд из этой папки.
+
+## Перенос истории
+
+База переноса — `origin/main` монорепозитория (`f41278a`), проверенная на GitHub 20 октября 2026 года. Более новый коммит ветки `origin/Backend` не включался в `main`.
+
+Merge-коммит `915bed2` сохраняет обе истории. Его второй родитель — снимок локальных изменений отдельного фронтенда (`3ab9c91`). Исходные коммиты, включая `2387566` и `d65594e`, сохранены с прежними идентификаторами, авторами и сообщениями. До переноса пути в этой ветке истории относились к корню отдельного репозитория:
+
+```sh
+git log --graph --oneline
+git log 915bed2^2 -- src/pages/RecipeDetailPage.tsx
+```
+
+В соседней с монорепозиторием папке `../.migration-backup` сохранены Git bundles обоих репозиториев, исходные локальные изменения и архив отдельного фронтенда. Архив содержит локальный `.env`; не публикуйте его.

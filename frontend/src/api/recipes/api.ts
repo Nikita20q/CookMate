@@ -1,7 +1,7 @@
 import type { RecognizeResponse, SearchHistoryResponse } from "./types";
 import apiClient from "../apiClient";
 import { RECIPES_ENDPOINTS } from "./endpoints";
-import type { Recipe, RecipeDetail } from "@/types/recipes";
+import type { RecipeDetail } from "@/types/recipes";
 
 export const recipesApi = {
   getSearchHistory: async (): Promise<SearchHistoryResponse> => {
