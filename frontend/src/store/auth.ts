@@ -6,6 +6,7 @@ interface AuthState {
   setAccessToken: (token: string | null) => void;
   clearAuth: () => void;
   isAuthenticated: () => boolean;
+  getUserId: () => string | null;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -18,6 +19,20 @@ export const useAuthStore = create<AuthState>()(
       clearAuth: () => set({ accessToken: null }),
 
       isAuthenticated: () => get().accessToken !== null,
+
+      getUserId: () => {
+        const token = get().accessToken;
+        if (!token) return null;
+
+        try {
+          const payload = token.split(".")[1];
+          const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+          const { sub } = JSON.parse(atob(base64));
+          return typeof sub === "string" && /^[1-9]\d*$/.test(sub) ? sub : null;
+        } catch {
+          return null;
+        }
+      },
     }),
     {
       name: "auth-storage",

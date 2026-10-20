@@ -4,9 +4,10 @@ import { useIngredientsStore } from "@/store/ingredients";
 import cn from "@/utils/classname-func";
 import { useQuery } from "@tanstack/react-query";
 import { useLoaderData, useNavigate } from "@tanstack/react-router";
-import { Heart, ArrowLeft, Clock, Flame, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Clock, Flame, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import RecipePanels from "@/components/recipes/RecipePanels";
+import FavoriteButton from "@/components/recipes/FavoriteButton";
 
 interface Step {
   num: number;
@@ -31,8 +32,6 @@ export function RecipeDetailPage() {
   });
 
   const { currentIngredients } = useIngredientsStore();
-
-  const fav = false;
 
   const toggleStep = (idx: number) => {
     setCompletedSteps((prev) => {
@@ -69,7 +68,9 @@ export function RecipeDetailPage() {
   );
 
   const matchScore = Math.round(
-    (availableIngredients.length / recipe.components.length) * 100,
+    recipe.components.length
+      ? (availableIngredients.length / recipe.components.length) * 100
+      : 0,
   );
 
   const overview = (
@@ -263,23 +264,10 @@ export function RecipeDetailPage() {
           <span className="bg-primary text-white font-semibold text-sm px-3 py-1.5 rounded-full">
             {matchScore}% совпадение
           </span>
-          <button
-            className={cn(
-              "text-sm font-normal flex items-center gap-2 px-4 py-2 rounded-xl transition-all hover:opacity-90",
-              {
-                "bg-[rgba(200,85,42,0.1)] text-accent border border-[rgba(200,85,42,0.3)]":
-                  fav,
-                "bg-accent text-white": !fav,
-              },
-            )}
-          >
-            <Heart
-              size={15}
-              fill={fav ? "var(--accent)" : "none"}
-              stroke={fav ? "var(--accent)" : "white"}
-            />
-            {fav ? "Сохранено" : "Сохранить рецепт"}
-          </button>
+          <FavoriteButton
+            recipe={{ ...recipe, slug: recipeSlug }}
+            variant="detail"
+          />
         </div>
       </div>
 

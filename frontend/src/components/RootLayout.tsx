@@ -18,7 +18,7 @@ import { useEffect } from "react";
 const RootLayout = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const isAuthenticated = useAuthStore.getState().isAuthenticated();
+  const isAuthenticated = useAuthStore((state) => state.accessToken !== null);
 
   const handleLogout = () => {
     useAuthStore.getState().clearAuth();

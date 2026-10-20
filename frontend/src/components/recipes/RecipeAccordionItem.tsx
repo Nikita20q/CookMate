@@ -1,10 +1,10 @@
 import type { Recipe } from "@/types/recipes";
 import { useState } from "react";
 import { ImageWithFallback } from "../ui/ImageWithFallback";
-import { ChevronDown, ChevronUp, Clock, Flame, Heart } from "lucide-react";
+import { ChevronDown, ChevronUp, Clock, Flame } from "lucide-react";
 import Ingredient from "../ui/Ingredient";
 import Hint from "../ui/Hint";
-import cn from "@/utils/classname-func";
+import FavoriteButton from "./FavoriteButton";
 import Button from "../ui/Button";
 import { Link } from "@tanstack/react-router";
 
@@ -15,23 +15,19 @@ interface Props {
 
 const RecipeAccordionItem = ({ recipe, currentIngredients }: Props) => {
   const [open, setOpen] = useState(false);
-  const [fav, setFav] = useState(false);
-
-  const handleSetFav = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-    e.stopPropagation();
-    setFav((val) => !val);
-  };
-
   const availableIngredients = recipe.components.filter((ing) =>
     currentIngredients.includes(ing.toLowerCase()),
   );
 
   const matchScore = Math.round(
-    (availableIngredients.length / recipe.components.length) * 100,
+    recipe.components.length
+      ? (availableIngredients.length / recipe.components.length) * 100
+      : 0,
   );
 
   return (
-    <div className="rounded-2xl overflow-hidden transition-all bg-card mb-3 border border-custom">
+    <div className="relative rounded-2xl overflow-hidden transition-all bg-card mb-3 border border-custom">
+      <FavoriteButton recipe={recipe} className="absolute right-4 top-4 z-10" />
       <button className="w-full text-left" onClick={() => setOpen((v) => !v)}>
         <div className="flex gap-4 p-4">
           <div className="relative flex-shrink-0">
@@ -48,27 +44,13 @@ const RecipeAccordionItem = ({ recipe, currentIngredients }: Props) => {
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start justify-between gap-4 pr-12">
               <div className="flex-1">
                 <p className="text-lg text-foreground font-medium leading-[1.3]">
                   {recipe.title}
                 </p>
                 <Hint text={recipe.description} className="text-sm! mt-1" />
               </div>
-
-              <button
-                className={cn(
-                  "flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all hover:opacity-80",
-                  fav ? "bg-[rgba(200,85,42,0.1)]" : "bg-secondary",
-                )}
-                onClick={handleSetFav}
-              >
-                <Heart
-                  size={17}
-                  fill={fav ? "var(--accent)" : "none"}
-                  stroke={fav ? "var(--accent)" : "var(--muted-foreground)"}
-                />
-              </button>
             </div>
 
             <div className="flex items-center gap-4 mt-3">
@@ -100,6 +82,7 @@ const RecipeAccordionItem = ({ recipe, currentIngredients }: Props) => {
               <div className="flex flex-wrap gap-1.5">
                 {recipe.components.map((ing) => (
                   <Ingredient
+                    key={ing}
                     className="text-xs"
                     available={currentIngredients.includes(ing)}
                     title={`${currentIngredients.includes(ing) ? "✓ " : ""}${ing}`}
