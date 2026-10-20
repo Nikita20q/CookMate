@@ -29,7 +29,10 @@ export const useIngredientsStore = create<IngredientsState>((set) => ({
   isInitialized: false,
 
   setCurrentIngredients: (ingredients) =>
-    set({ currentIngredients: ingredients, isInitialized: true }),
+    set({
+      currentIngredients: ingredients.map((i) => i.toLowerCase()),
+      isInitialized: true,
+    }),
 
   clearIngredients: () => set({ currentIngredients: [] }),
 
