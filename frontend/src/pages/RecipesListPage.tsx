@@ -31,6 +31,7 @@ export function RecipesListPage() {
     data: recipes,
     isError: isRecipesError,
     isPending: isRecipesPending,
+    refetch,
   } = useQuery({
     queryKey,
     queryFn: () => recipesApi.findByIngredients(currentIngredients),
@@ -143,6 +144,22 @@ export function RecipesListPage() {
             text="Отсортированные по оценке совпадения ингредиентов - нажмите на рецепт для получения подробной информации"
             className="text-sm! mb-6"
           />
+          {currentIngredients.length > 0 && isRecipesPending && (
+            <p role="status" className="py-8 text-muted-foreground">
+              Загружаем рецепты…
+            </p>
+          )}
+          {isRecipesError && (
+            <div role="alert" className="py-8">
+              <p className="mb-4">Не удалось загрузить рецепты.</p>
+              <Button
+                text="Повторить поиск"
+                onClick={() => {
+                  refetch();
+                }}
+              />
+            </div>
+          )}
           {recipes?.recipes.map((recipe) => (
             <RecipeAccordionItem
               key={recipe.id}
@@ -150,44 +167,45 @@ export function RecipesListPage() {
               currentIngredients={currentIngredients}
             />
           ))}
-          {isRecipesError ||
-            isRecipesPending ||
-            (recipes.recipeCount == 0 && (
-              <div className="flex justify-center items-center">
-                <div className="w-fit bg-card p-8 rounded-2xl border border-custom flex justify-center items-center gap-4 flex-col">
-                  <div className="w-20 h-20 rounded-full flex items-center justify-center bg-secondary">
-                    <CircleX size={34} className="text-primary" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-foreground font-semibold">
-                      Рецепты не найдены
-                    </p>
-                    <Hint
-                      text={
-                        currentIngredients.length == 0
-                          ? "Не удалось распознать продукты на фотографии. Добавьте их вручную либо сфотографируйте их заново"
-                          : "Для данных продуктов не получилось найти подходящие рецепты"
-                      }
-                      className="text-sm! mt-2"
-                    />
-                  </div>
-                  <div className="flex flex-row justify-center items-center gap-4 w-full">
+          {(currentIngredients.length === 0 ||
+            (!isRecipesError &&
+              !isRecipesPending &&
+              recipes?.recipeCount === 0)) && (
+            <div className="flex justify-center items-center">
+              <div className="w-fit bg-card p-8 rounded-2xl border border-custom flex justify-center items-center gap-4 flex-col">
+                <div className="w-20 h-20 rounded-full flex items-center justify-center bg-secondary">
+                  <CircleX size={34} className="text-primary" />
+                </div>
+                <div className="text-center">
+                  <p className="text-foreground font-semibold">
+                    Рецепты не найдены
+                  </p>
+                  <Hint
+                    text={
+                      currentIngredients.length == 0
+                        ? "Не удалось распознать продукты на фотографии. Добавьте их вручную либо сфотографируйте их заново"
+                        : "Для данных продуктов не получилось найти подходящие рецепты"
+                    }
+                    className="text-sm! mt-2"
+                  />
+                </div>
+                <div className="flex flex-row justify-center items-center gap-4 w-full">
+                  <Button
+                    text="Добавить ингредиенты"
+                    variant="primary"
+                    onClick={() => setShowIngForm(true)}
+                  />
+                  <Link to={ScanRoute.to} className="w-full rounded-xl">
                     <Button
-                      text="Добавить ингредиенты"
-                      variant="primary"
-                      onClick={() => setShowIngForm(true)}
+                      text="Сканировать заново"
+                      variant="secondary"
+                      nofocus
                     />
-                    <Link to={ScanRoute.to} className="w-full rounded-xl">
-                      <Button
-                        text="Сканировать заново"
-                        variant="secondary"
-                        nofocus
-                      />
-                    </Link>
-                  </div>
+                  </Link>
                 </div>
               </div>
-            ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

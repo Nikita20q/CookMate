@@ -26,7 +26,12 @@ export function RecipeDetailPage() {
   const navigate = useNavigate();
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
 
-  const { data: recipe } = useQuery({
+  const {
+    data: recipe,
+    isPending,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["recipes", recipeSlug],
     queryFn: () => recipesApi.getBySlug(recipeSlug),
   });
@@ -44,6 +49,42 @@ export function RecipeDetailPage() {
       return next;
     });
   };
+
+  if (isPending) {
+    return (
+      <div
+        role="status"
+        className="flex min-h-screen items-center justify-center text-muted-foreground"
+      >
+        Загружаем рецепт…
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div
+        role="alert"
+        className="flex min-h-screen flex-col items-center justify-center gap-4"
+      >
+        <p>Не удалось загрузить рецепт.</p>
+        <button
+          onClick={() => {
+            refetch();
+          }}
+          className="text-primary"
+        >
+          Повторить загрузку
+        </button>
+        <button
+          onClick={() => navigate({ to: "/recipes" })}
+          className="text-primary"
+        >
+          Назад к рецептам
+        </button>
+      </div>
+    );
+  }
 
   if (!recipe) {
     return (
@@ -109,9 +150,7 @@ export function RecipeDetailPage() {
           ].map(({ icon, label, value }) => (
             <div key={label} className="flex flex-col items-center gap-1">
               {icon}
-              <span className="text-[10px] text-muted-foreground">
-                {label}
-              </span>
+              <span className="text-[10px] text-muted-foreground">{label}</span>
               <span className="text-[13px] font-bold text-foreground">
                 {value}
               </span>
@@ -133,9 +172,7 @@ export function RecipeDetailPage() {
           </div>
           <div className="flex flex-col gap-2">
             {recipe.components.map((ing) => {
-              const isInPantry = currentIngredients.includes(
-                ing.toLowerCase(),
-              );
+              const isInPantry = currentIngredients.includes(ing.toLowerCase());
               return (
                 <div
                   key={ing}

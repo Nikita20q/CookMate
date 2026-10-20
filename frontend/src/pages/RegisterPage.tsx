@@ -37,15 +37,14 @@ const RegisterPage = () => {
     password: "",
   });
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (data.email.trim().length == 0 || data.password.length == 0) {
       setIsError(true);
       return;
     }
     try {
-      authApi.register(data.email.trim(), data.password);
+      await authApi.register(data.email.trim(), data.password);
       setShowConfirmCode(true);
-      // navigate({ to: ConfirmCodeRoute.to });
     } catch {
       setIsError(true);
     }

@@ -41,7 +41,11 @@ export const useIngredientsStore = create<IngredientsState>((set) => ({
       const history = await recipesApi.getSearchHistory();
 
       if (history && history.length > 0) {
-        set({ currentIngredients: history[0].ingredients });
+        set({
+          currentIngredients: history[0].ingredients.map((ingredient) =>
+            ingredient.toLowerCase(),
+          ),
+        });
       } else {
         set({ currentIngredients: [] });
       }

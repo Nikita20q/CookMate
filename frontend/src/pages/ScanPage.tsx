@@ -115,6 +115,13 @@ export function ScanPage() {
               )}
             </button>
 
+            {recognizeMutation.isError && (
+              <p role="alert" className="text-sm text-destructive">
+                Не удалось распознать продукты. Попробуйте загрузить фото ещё
+                раз.
+              </p>
+            )}
+
             <Hint
               text="Расположите продукты на столе для лучшей работы программы"
               className="text-center"
