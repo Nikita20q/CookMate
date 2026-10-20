@@ -34,7 +34,7 @@ const RootLayout = () => {
   return (
     <div className="flex min-h-screen">
       <aside
-        className="fixed top-0 left-0 h-full flex flex-col z-40 w-[240px] bg-card"
+        className="fixed top-0 left-0 z-40 hidden h-dvh w-[240px] flex-col bg-card md:flex"
         style={{ borderRight: "1px solid var(--border)" }}
       >
         <div
@@ -95,8 +95,7 @@ const RootLayout = () => {
 
       {/* Main content */}
       <main
-        className="flex-1 overflow-y-auto"
-        style={{ marginLeft: "240px", minHeight: "100vh" }}
+        className="min-h-dvh min-w-0 flex-1 md:ml-[240px]"
       >
         <Outlet />
         {/* <TanStackRouterDevtools /> */}
