@@ -17,30 +17,25 @@ public interface RecipeRepository extends JpaRepository<RecipeEntity, Long> {
      * @return отсортированный список рецептов (от большего совпадения к меньшему)
      */
     @Query(value = """
-    WITH RecipeTotals AS (
-        SELECT recipe_id, COUNT(*) as total_count
-        FROM recipe_components
-        GROUP BY recipe_id
-    )
     SELECT r.id
-    FROM recipes r
-    JOIN recipe_components rc ON r.id = rc.recipe_id
-    JOIN ingredients i ON rc.ingredient_id = i.id
-    LEFT JOIN RecipeTotals rt ON r.id = rt.recipe_id
-    WHERE LOWER(i.name) IN :ingredientNames
-    GROUP BY r.id, rt.total_count
-    HAVING COUNT(rc.ingredient_id) >= :minMatches
+    FROM (
+        SELECT rc.recipe_id, COUNT(*) as match_count
+        FROM recipe_components rc
+        JOIN ingredients i ON rc.ingredient_id = i.id
+        WHERE LOWER(i.name) IN :ingredientNames
+        GROUP BY rc.recipe_id
+        HAVING COUNT(*) >= :minMatches
+    ) as matched
+    JOIN recipes r ON r.id = matched.recipe_id
+    JOIN LATERAL (
+        SELECT COUNT(*) as total_count
+        FROM recipe_components rc2
+        WHERE rc2.recipe_id = r.id
+    ) as totals ON true
     ORDER BY 
-        CASE 
-            WHEN ROUND((COUNT(rc.ingredient_id) * 100.0 / NULLIF(COALESCE(rt.total_count, 0), 0)), 2) = 100.00 
-            THEN 0 
-            ELSE 1 
-        END ASC,
-        COUNT(rc.ingredient_id) DESC,
-        ROUND(
-            (COUNT(rc.ingredient_id) * 100.0 / NULLIF(COALESCE(rt.total_count, 0), 0)), 
-            2
-        ) DESC
+        CASE WHEN matched.match_count = totals.total_count THEN 0 ELSE 1 END ASC,
+        matched.match_count DESC,
+        (matched.match_count * 100.0 / totals.total_count) DESC
     LIMIT 100
     """, nativeQuery = true)
     List<Long> findRecipeIdsByIngredients(
