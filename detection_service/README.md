@@ -123,6 +123,43 @@ docker compose up -d --build
 
 <a id="-тестирование"></a>
 ## 🧪 Тестирование
+
+### Автоматические тесты
+
+Из каталога `detection_service`:
+
+```bash
+# Отдельный контейнер: не нужны веса, GPU, backend и .env.
+# Каждый тест виден в консоли; код завершения ненулевой при ошибке.
+docker compose -f compose.test.yml up --build --abort-on-container-exit --exit-code-from detection-tests
+
+# Локально (Python 3.11/3.12):
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements-test.txt
+sh run_tests.sh
+```
+
+45 тестовых методов (`unittest`, часть содержит дополнительные `subTest`).
+FastAPI, multipart и декодирование JPEG/PNG настоящие; только YOLO заменён
+контролируемыми моделями. Проверки не измеряют качество распознавания и не
+подтверждают загрузку настоящих весов. Для этого нужен отдельный запуск сервиса
+с весами и проверка реального фото.
+
+Оба Dockerfile сервиса запускают эти тесты **при каждом старте контейнера**, до
+Uvicorn. При ошибке процесс завершается, API не запускается. Это действует и для
+`ml-service` в корневом Compose. Чтобы видеть ход тестов:
+
+```bash
+# Из detection_service: тесты, затем API с настоящими весами
+docker compose up --build
+# Если контейнер уже запущен в фоне:
+docker compose logs -f cookmate-api
+# Из корня CookMate:
+docker compose logs -f ml-service
+```
+
+### Ручная проверка настоящих моделей
 *Способ 1*: Swagger UI (в браузере)
 
 1) Откройте `http://localhost:8000/docs`
