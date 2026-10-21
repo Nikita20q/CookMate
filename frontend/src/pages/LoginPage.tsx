@@ -1,4 +1,5 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { safeReturnTo } from "@/lib/session";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { Route as registerRoute } from "@/routes/auth/register";
 import { useState } from "react";
 import { authApi } from "@/api/auth/api";
@@ -8,6 +9,7 @@ import Hint from "@/components/ui/Hint";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { returnTo } = useSearch({ from: "/auth/login" });
   const [data, setData] = useState<{ email: string; password: string }>({
     email: "",
     password: "",
@@ -22,21 +24,30 @@ const LoginPage = () => {
     try {
       const result = await authApi.login(data.email.trim(), data.password);
       useAuthStore.getState().setAccessToken(result.token);
-      navigate({ to: "/" });
+      navigate({ href: safeReturnTo(returnTo) });
     } catch {
       setIsError(true);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center">
-      <div className="bg-card p-10 min-w-100 rounded-xl flex flex-col items-center justify-center gap-10 border-custom border">
+    <div className="min-h-[calc(100dvh-var(--app-header-height,0rem))] flex flex-col items-center justify-center px-4 py-8">
+      <div className="bg-card w-full max-w-md p-6 sm:p-10 rounded-xl flex flex-col items-center justify-center gap-10 border-custom border">
         <h1>Вход</h1>
 
-        <form className="flex flex-col gap-4 w-full">
+        <form
+          className="flex flex-col gap-4 w-full"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void handleLogin();
+          }}
+        >
           <input
             type="text"
             className="border-custom border-b"
+            name="email"
+            aria-label="Электронная почта"
+            autoComplete="email"
             placeholder="Электронная почта"
             value={data.email}
             onChange={(e) => {
@@ -46,6 +57,9 @@ const LoginPage = () => {
           />
           <input
             type="password"
+            name="password"
+            aria-label="Пароль"
+            autoComplete="current-password"
             placeholder="Пароль"
             className="border-custom border-b"
             value={data.password}
@@ -60,21 +74,16 @@ const LoginPage = () => {
               className="text-[#a60c25]!"
             />
           )}
+          <Button type="submit" text="Войти" />
         </form>
         <div>
           <span>Нет аккаунта? </span>
           <span>
-            <Link to={registerRoute.to} className="underline">
+            <Link to={registerRoute.to} search={{ returnTo }} className="underline">
               Регистрация
             </Link>
           </span>
         </div>
-        <Button
-          text="Войти"
-          onClick={() => {
-            handleLogin();
-          }}
-        />
       </div>
     </div>
   );

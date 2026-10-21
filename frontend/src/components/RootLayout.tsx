@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Link,
   Outlet,
@@ -13,14 +14,29 @@ import { useAuthStore } from "@/store/auth";
 import { Route as loginRoute } from "@/routes/auth/login";
 import { Route as registerRoute } from "@/routes/auth/register";
 import { useIngredientsStore } from "@/store/ingredients";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Menu } from "lucide-react";
+import ResponsiveSidebar from "@/components/ui/ResponsiveSidebar";
 
 const RootLayout = () => {
-  const { pathname } = useLocation();
+  const { pathname, href } = useLocation();
   const navigate = useNavigate();
-  const isAuthenticated = useAuthStore((state) => state.accessToken !== null);
+  const queryClient = useQueryClient();
+  const [navigationOpen, setNavigationOpen] = useState(false);
+
+  useEffect(() => {
+    return useAuthStore.subscribe((state, previous) => {
+      if (state.accessToken === previous.accessToken) return;
+      void queryClient.cancelQueries({ queryKey: ["favorites"] });
+      queryClient.removeQueries({ queryKey: ["favorites"] });
+    });
+  }, [queryClient]);
+  const isAuthenticated = useAuthStore((state) => state.status === "authenticated");
+
+  const sessionExpired = useAuthStore((state) => state.status === "expired");
 
   const handleLogout = () => {
+    setNavigationOpen(false);
     useAuthStore.getState().clearAuth();
     navigate({ to: loginRoute.to });
   };
@@ -32,10 +48,26 @@ const RootLayout = () => {
   }, [initIngredients]);
 
   return (
-    <div className="flex min-h-screen">
-      <aside
-        className="fixed top-0 left-0 z-40 hidden h-dvh w-[240px] flex-col bg-card md:flex"
-        style={{ borderRight: "1px solid var(--border)" }}
+    <div className="flex min-h-dvh [--app-header-height:4rem] md:[--app-header-height:0rem]">
+      <header className="fixed inset-x-0 top-0 z-40 flex h-16 items-center gap-3 border-b bg-card px-4 md:hidden">
+        <button
+          type="button"
+          aria-label="Открыть навигацию"
+          aria-expanded={navigationOpen}
+          aria-controls="main-navigation"
+          onClick={() => setNavigationOpen(true)}
+          className="rounded-xl p-2 text-primary hover:bg-secondary focus-visible:outline-2"
+        >
+          <Menu size={24} />
+        </button>
+        <span className="font-semibold">CookMate</span>
+      </header>
+      <ResponsiveSidebar
+        id="main-navigation"
+        title="Навигация"
+        breakpoint="md"
+        open={navigationOpen}
+        onOpenChange={setNavigationOpen}
       >
         <div
           className="px-6 pt-8 pb-6"
@@ -53,21 +85,21 @@ const RootLayout = () => {
         {/* Nav links */}
         <nav className="flex flex-col gap-1 px-3 pt-4 flex-1">
           {NAV_ITEMS.map(({ to, icon: Icon, label }) => {
+            const active = pathname === to || (to !== "/" && pathname.startsWith(`${to}/`));
             return (
-              <Link key={to} to={to}>
-                <span
-                  className={cn(
-                    "flex items-center gap-4 py-2 px-3 rounded-lg text-md",
-                    {
-                      "color-[var(--primary)] bg-[rgba(61,107,79,0.1)]":
-                        pathname == to,
-                      "color-[var(--muted-foreground)]": pathname != to,
-                    },
-                  )}
-                >
-                  <Icon size={18} />
-                  {label}
-                </span>
+              <Link
+                key={to}
+                to={to}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex items-center gap-4 rounded-lg px-3 py-2 text-base transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 motion-reduce:transition-none",
+                  active
+                    ? "bg-primary/10 text-primary hover:bg-primary/15 focus-visible:bg-primary/15"
+                    : "text-muted-foreground hover:bg-primary/5 hover:text-primary focus-visible:bg-primary/5 focus-visible:text-primary",
+                )}
+              >
+                <Icon size={18} />
+                {label}
               </Link>
             );
           })}
@@ -79,7 +111,7 @@ const RootLayout = () => {
             pathname != loginRoute.to &&
             pathname != registerRoute.to && (
               <div>
-                <Link to={loginRoute.to}>
+                <Link to={loginRoute.to} search={{ returnTo: href }}>
                   <Button text="Войти" />
                 </Link>
               </div>
@@ -91,12 +123,20 @@ const RootLayout = () => {
           )}
           <Hint text="Сфотографируйте ингредиенты в наличии или загрузите фотографию" />
         </div>
-      </aside>
+      </ResponsiveSidebar>
 
       {/* Main content */}
       <main
-        className="min-h-dvh min-w-0 flex-1 md:ml-[240px]"
+        className="min-h-dvh min-w-0 flex-1 pt-16 md:ml-[240px] md:pt-0"
       >
+        {sessionExpired && !pathname.startsWith("/auth/") && (
+          <div role="alert" className="border-b bg-secondary px-6 py-4">
+            Сессия истекла.{" "}
+            <Link to="/auth/login" search={{ returnTo: href }} className="underline">
+              Войти снова
+            </Link>
+          </div>
+        )}
         <Outlet />
         {/* <TanStackRouterDevtools /> */}
       </main>

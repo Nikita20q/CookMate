@@ -1,3 +1,4 @@
+import { matchRecipe } from "@/lib/ingredients";
 import type { Recipe } from "@/types/recipes";
 import { useState } from "react";
 import { ImageWithFallback } from "../ui/ImageWithFallback";
@@ -15,15 +16,8 @@ interface Props {
 
 const RecipeAccordionItem = ({ recipe, currentIngredients }: Props) => {
   const [open, setOpen] = useState(false);
-  const availableIngredients = recipe.components.filter((ing) =>
-    currentIngredients.includes(ing.toLowerCase()),
-  );
-
-  const matchScore = Math.round(
-    recipe.components.length
-      ? (availableIngredients.length / recipe.components.length) * 100
-      : 0,
-  );
+  const { ingredients, matchedCount, totalCount, matchScore } =
+    matchRecipe(recipe, currentIngredients);
 
   return (
     <div className="relative rounded-2xl overflow-hidden transition-all bg-card mb-3 border border-custom">
@@ -53,7 +47,7 @@ const RecipeAccordionItem = ({ recipe, currentIngredients }: Props) => {
               </div>
             </div>
 
-            <div className="flex items-center gap-4 mt-3">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3">
               <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 <Clock size={13} />
                 {recipe.approximateTime}
@@ -74,26 +68,26 @@ const RecipeAccordionItem = ({ recipe, currentIngredients }: Props) => {
 
       {open && (
         <div className="border-t border-custom">
-          <div className="p-5 grid grid-cols-2 gap-6">
+          <div className="p-5 grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
               <p className="text-xs font-bold text-foreground mb-3 uppercase tracking-wider">
                 Ингредиенты
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {recipe.components.map((ing) => (
+                {ingredients.map((ingredient) => (
                   <Ingredient
-                    key={ing}
+                    key={ingredient.key}
                     className="text-xs"
-                    available={currentIngredients.includes(ing)}
-                    title={`${currentIngredients.includes(ing) ? "✓ " : ""}${ing}`}
+                    available={ingredient.available}
+                    title={`${ingredient.available ? "✓ " : ""}${ingredient.title}`}
                   />
                 ))}
               </div>
               <p className="text-xs text-muted-foreground mt-3">
                 <span className="text-primary font-semibold">
-                  {availableIngredients.length}
+                  {matchedCount}
                 </span>
-                /{recipe.components.length} ингредиентов в наличии
+                /{totalCount} ингредиентов в наличии
               </p>
             </div>
 

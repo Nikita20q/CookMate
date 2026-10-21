@@ -1,3 +1,4 @@
+import { matchRecipe } from "@/lib/ingredients";
 import { Link } from "@tanstack/react-router";
 import { Clock, Flame } from "lucide-react";
 import type { Recipe } from "@/types/recipes";
@@ -13,15 +14,7 @@ export default function FavoriteRecipeCard({
   recipe,
   currentIngredients,
 }: FavoriteRecipeCardProps) {
-  const pantry = new Set(
-    currentIngredients.map((ingredient) => ingredient.trim().toLowerCase()),
-  );
-  const matched = recipe.components.filter((ingredient) =>
-    pantry.has(ingredient.trim().toLowerCase()),
-  ).length;
-  const matchScore = recipe.components.length
-    ? Math.round((matched / recipe.components.length) * 100)
-    : 0;
+  const { ingredients, matchScore } = matchRecipe(recipe, currentIngredients);
 
   return (
     <article className="flex min-w-0 flex-col overflow-hidden rounded-2xl border bg-card">
@@ -60,12 +53,12 @@ export default function FavoriteRecipeCard({
             )}
           </div>
           <div className="flex flex-wrap gap-1.5 pt-1">
-            {recipe.components.slice(0, 3).map((ingredient) => (
+            {ingredients.slice(0, 3).map((ingredient) => (
               <span
-                key={ingredient}
+                key={ingredient.key}
                 className="max-w-full truncate rounded-full bg-secondary px-2 py-1 text-[11px] text-muted-foreground"
               >
-                {ingredient}
+                {ingredient.title}
               </span>
             ))}
           </div>

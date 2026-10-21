@@ -6,16 +6,19 @@ import cn from "@/utils/classname-func";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Camera, Upload, ChefHatIcon, CircleX, Loader2 } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Route as recipesListRoute } from "@/routes/recipes/index";
 import { Link } from "@tanstack/react-router";
 
+const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
+
 export function ScanPage() {
   const navigate = useNavigate();
-  const setCurrentIngredients = useIngredientsStore(
-    (state) => state.setCurrentIngredients,
+  const setRecognitionResult = useIngredientsStore(
+    (state) => state.setRecognitionResult,
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
   const lastIngredients = useIngredientsStore(
     (state) => state.currentIngredients,
   );
@@ -23,7 +26,7 @@ export function ScanPage() {
   const recognizeMutation = useMutation({
     mutationFn: recipesApi.recognize,
     onSuccess: (data) => {
-      setCurrentIngredients(data.recognizedIngredients);
+      setRecognitionResult(data);
 
       navigate({ to: recipesListRoute.to });
     },
@@ -37,17 +40,24 @@ export function ScanPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    recognizeMutation.mutate(file);
-
     e.target.value = "";
+    if (recognizeMutation.isPending) return;
+
+    recognizeMutation.reset();
+    if (file.size > MAX_PHOTO_SIZE) {
+      setFileError("Размер изображения не должен превышать 10 МБ. Выберите файл меньшего размера.");
+      return;
+    }
+
+    setFileError(null);
+    recognizeMutation.mutate(file);
   };
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-5xl mx-auto px-10 py-12">
+      <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6 md:px-10 md:py-12">
         <div className="mb-10">
-          <h1 className="text-4xl font-semibold">
+          <h1 className="text-3xl font-semibold sm:text-4xl">
             Что у вас сегодня{" "}
             <span className="text-primary">в холодильнике?</span>
           </h1>
@@ -66,7 +76,7 @@ export function ScanPage() {
           className="hidden"
         />
 
-        <div className="grid grid-cols-2 gap-8 items-start">
+        <div className="grid grid-cols-1 gap-6 items-start lg:grid-cols-2 lg:gap-8">
           <div className="flex flex-col gap-4">
             <button className="w-full rounded-2xl h-[300px] border-primary border-[2px] border-dashed bg-card flex flex-col items-center justify-center gap-5 transition-all hover:opacity-90 active:scale-[0.99]">
               <div className="w-20 h-20 rounded-full flex items-center justify-center bg-secondary">
@@ -115,10 +125,11 @@ export function ScanPage() {
               )}
             </button>
 
-            {recognizeMutation.isError && (
+            <Hint text="Максимальный размер изображения — 10 МБ" className="text-center" />
+
+            {(fileError || recognizeMutation.isError) && (
               <p role="alert" className="text-sm text-destructive">
-                Не удалось распознать продукты. Попробуйте загрузить фото ещё
-                раз.
+                {fileError ?? "Не удалось распознать продукты. Попробуйте загрузить фото ещё раз."}
               </p>
             )}
 
@@ -188,7 +199,7 @@ export function ScanPage() {
             <Link
               to={lastIngredients.length > 0 ? recipesListRoute.to : "."}
               className={cn(
-                "text-primary-foreground w-full py-3.5 rounded-xl flex items-center justify-center gap-2.5",
+                "text-primary-foreground w-full px-5 py-3.5 rounded-xl flex items-center justify-center gap-2.5 text-center",
                 lastIngredientsNotFound
                   ? "bg-[rgba(61,107,79,0.5)]"
                   : "bg-primary transition-all hover:opacity-90 active:scale-[0.99] cursor-pointer",
@@ -196,7 +207,7 @@ export function ScanPage() {
               disabled={lastIngredientsNotFound}
             >
               <ChefHatIcon size={18} />
-              Найти рецепты с этими ингредиентами
+              Найти подходящие рецепты
             </Link>
           </div>
         </div>

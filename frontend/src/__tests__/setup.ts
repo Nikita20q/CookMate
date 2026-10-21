@@ -6,15 +6,16 @@ import { useIngredientsStore } from "@/store/ingredients";
 
 beforeEach(() => {
   localStorage.clear();
-  useAuthStore.setState({ accessToken: null });
+  useAuthStore.getState().clearAuth();
   useIngredientsStore.setState({
     currentIngredients: [],
+    recognitionResult: null,
     isInitialized: false,
   });
   vi.stubGlobal(
     "matchMedia",
     vi.fn((media: string) => ({
-      matches: false,
+      matches: media === "(min-width: 48rem)" || media === "(min-width: 64rem)",
       media,
       onchange: null,
       addEventListener: vi.fn(),

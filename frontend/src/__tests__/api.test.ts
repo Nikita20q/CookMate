@@ -26,6 +26,7 @@ beforeEach(() => {
 
 afterEach(() => {
   apiClient.defaults.adapter = originalAdapter;
+  vi.useRealTimers();
 });
 
 describe("Запросы к API", () => {
@@ -90,6 +91,50 @@ describe("Запросы к API", () => {
       ["post", "/favorites/42", { userId: "1" }],
       ["delete", "/favorites/42", { userId: "1" }],
     ]);
+  });
+
+  it("не отправляет запрос с истёкшим токеном и завершает сессию", async () => {
+    vi.useFakeTimers();
+    const exp = Math.floor(Date.now() / 1000) + 5;
+    useAuthStore.getState().setAccessToken(token("1", exp));
+    vi.setSystemTime(exp * 1000);
+    await expect(favoritesApi.add("1", 42)).rejects.toMatchObject({ code: "ERR_SESSION_EXPIRED" });
+    expect(requests).toHaveLength(0);
+    expect(useAuthStore.getState().status).toBe("expired");
+  });
+
+  it.each([401, 403, 500])("обрабатывает HTTP %s централизованно", async (status) => {
+    useAuthStore.getState().setAccessToken(token());
+        apiClient.defaults.adapter = async (config) => {
+      const rejected = new AxiosError("HTTP error", "ERR_BAD_REQUEST", config, undefined,
+        { status, statusText: "Error", data: {}, headers: {}, config });
+      throw rejected;
+    };
+    await expect(favoritesApi.add("1", 42)).rejects.toMatchObject({ response: { status } });
+    expect(useAuthStore.getState().status).toBe(status === 401 ? "expired" : "authenticated");
+    expect(useAuthStore.getState().accessToken).toBe(status === 401 ? null : token());
+  });
+
+  it("401 от старого запроса не завершает новую сессию", async () => {
+    useAuthStore.getState().setAccessToken(token("1"));
+    apiClient.defaults.adapter = async (config) => {
+      useAuthStore.getState().setAccessToken(token("2"));
+      throw new AxiosError("Old session", "ERR_BAD_REQUEST", config, undefined,
+        { status: 401, statusText: "Unauthorized", data: {}, headers: {}, config });
+    };
+    await expect(favoritesApi.getAll("1")).rejects.toBeInstanceOf(AxiosError);
+    expect(useAuthStore.getState().getUserId()).toBe("2");
+  });
+
+  it("401 при входе не сбрасывает сессию и не добавляет Bearer", async () => {
+    useAuthStore.getState().setAccessToken(token());
+    apiClient.defaults.adapter = async (config) => {
+      expect(config.headers.Authorization).toBeUndefined();
+      throw new AxiosError("Bad credentials", "ERR_BAD_REQUEST", config, undefined,
+        { status: 401, statusText: "Unauthorized", data: {}, headers: {}, config });
+    };
+    await expect(authApi.login("cook@example.com", "wrong")).rejects.toBeInstanceOf(AxiosError);
+    expect(useAuthStore.getState().status).toBe("authenticated");
   });
 
   it("передаёт сетевую ошибку вызывающему коду", async () => {

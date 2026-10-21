@@ -1,7 +1,7 @@
 import type { Recipe, RecipeDetail } from "@/types/recipes";
 
-export const token = (id = "1") =>
-  `header.${btoa(JSON.stringify({ sub: id, exp: 4_000_000_000 }))}.signature`;
+export const token = (id = "1", exp = 4_000_000_000) =>
+  `header.${btoa(JSON.stringify({ sub: id, exp }))}.signature`;
 
 export const recipe: Recipe = {
   id: 42,

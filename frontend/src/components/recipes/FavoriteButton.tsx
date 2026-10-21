@@ -1,5 +1,5 @@
 import { Heart, LoaderCircle, RefreshCw } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useLocation } from "@tanstack/react-router";
 import {
   useIsMutating,
   useMutation,
@@ -25,6 +25,7 @@ export default function FavoriteButton({
 }: FavoriteButtonProps) {
   const userId = useAuthStore((state) => state.getUserId());
   const navigate = useNavigate();
+  const { href } = useLocation();
   const queryClient = useQueryClient();
   const queryKey = ["favorites", userId];
   const mutationKey = ["favorite-toggle", userId, String(recipe.id)];
@@ -62,13 +63,14 @@ export default function FavoriteButton({
   const pendingMutations = useIsMutating({ mutationKey, exact: true });
   const loading = !!userId && (favorites.isPending || pendingMutations > 0);
   const error = mutation.error ?? favorites.error;
-  const needsLogin =
-    !userId ||
-    (isAxiosError(error) && [401, 403].includes(error.response?.status ?? 0));
+  const needsLogin = !userId;
+  const forbidden = isAxiosError(error) && error.response?.status === 403;
 
   let label = isFavorite ? "Удалить из избранного" : "Сохранить рецепт";
   if (needsLogin) {
     label = "Войдите, чтобы сохранить рецепт";
+  } else if (forbidden) {
+    label = "Нет прав для изменения избранного";
   } else if (favorites.isError) {
     label = "Повторить загрузку избранного";
   } else if (mutation.isError) {
@@ -82,7 +84,7 @@ export default function FavoriteButton({
       aria-pressed={isFavorite}
       aria-busy={loading}
       title={label}
-      disabled={loading}
+      disabled={loading || forbidden}
       className={cn(
         "flex shrink-0 items-center justify-center gap-2 transition-colors disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2",
         {
@@ -102,7 +104,7 @@ export default function FavoriteButton({
       onClick={(event) => {
         event.stopPropagation();
         if (needsLogin) {
-          navigate({ to: "/auth/login" });
+          navigate({ to: "/auth/login", search: { returnTo: href } });
         } else if (favorites.isError) {
           favorites.refetch();
         } else {

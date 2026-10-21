@@ -13,7 +13,6 @@ cp .env.example .env
 npm run dev
 ```
 
-Если `.env` уже существует, сохраните его настройки. `VITE_API_BASE_URL` задаёт адрес API, доступный браузеру; пример использует локальный Gateway на порту 8090. Переменные Vite входят в клиентскую сборку: секреты в них хранить нельзя.
 
 ```sh
 npm run build
@@ -29,14 +28,14 @@ npm run preview
 docker compose up --build frontend
 ```
 
-Фронтенд доступен на порту 3000. Для сборки с явным адресом API:
+Фронтенд доступен на порту 3000. По умолчанию nginx контейнера проксирует `/api` на `backend:8080` в сети корневого compose. Для сборки с явным адресом API:
 
 ```sh
-docker compose build --build-arg VITE_API_BASE_URL=http://localhost:8090/api/v1 frontend
+docker compose build --build-arg VITE_API_BASE_URL=https://api.example.com/api/v1 frontend
 docker compose up -d frontend
 ```
 
-Адрес API задаётся при сборке; для его изменения нужен новый образ. Локальный `.env` не включается в Docker-контекст. `frontend/docker-compose.yml` сохранён из отдельного репозитория и позволяет запускать только фронтенд из этой папки.
+Адрес API задаётся при сборке; для его изменения нужен новый образ. Локальный `.env` не включается в Docker-контекст. `frontend/docker-compose.yml` запускает только фронтенд. Для работы API в таком режиме нужен доступный сервис `backend` в сети контейнера либо явно заданный при сборке адрес API; при отдельном origin настройте CORS backend.
 
 ## Тестирование
 

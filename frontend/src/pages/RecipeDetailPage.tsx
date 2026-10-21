@@ -1,3 +1,4 @@
+import { matchRecipe } from "@/lib/ingredients";
 import { recipesApi } from "@/api/recipes/api";
 import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import { useIngredientsStore } from "@/store/ingredients";
@@ -104,15 +105,8 @@ export function RecipeDetailPage() {
     ? JSON.parse(recipe.contentJson)
     : { steps: [], description: recipe.description };
 
-  const availableIngredients = recipe.components.filter((ing) =>
-    currentIngredients.includes(ing.toLowerCase()),
-  );
-
-  const matchScore = Math.round(
-    recipe.components.length
-      ? (availableIngredients.length / recipe.components.length) * 100
-      : 0,
-  );
+  const { ingredients, matchedCount, totalCount, matchScore } =
+    matchRecipe(recipe, currentIngredients);
 
   const overview = (
     <div className="flex min-w-0 flex-col [overflow-wrap:anywhere]">
@@ -165,17 +159,16 @@ export function RecipeDetailPage() {
             </h2>
             <span className="text-xs text-muted-foreground">
               <span className="text-primary font-semibold">
-                {availableIngredients.length}
+                {matchedCount}
               </span>
-              /{recipe.components.length} в кладовой
+              /{totalCount} в кладовой
             </span>
           </div>
           <div className="flex flex-col gap-2">
-            {recipe.components.map((ing) => {
-              const isInPantry = currentIngredients.includes(ing.toLowerCase());
+            {ingredients.map(({ key, title, available: isInPantry }) => {
               return (
                 <div
-                  key={ing}
+                  key={key}
                   className={cn(
                     "flex items-center justify-between px-4 py-2.5 rounded-xl border transition-colors",
                     isInPantry
@@ -190,7 +183,7 @@ export function RecipeDetailPage() {
                         isInPantry ? "bg-primary" : "bg-muted-foreground",
                       )}
                     />
-                    <span className="text-sm text-foreground">{ing}</span>
+                    <span className="text-sm text-foreground">{title}</span>
                   </div>
                   {!isInPantry && (
                     <span className="px-2 py-0.5 rounded-full bg-secondary text-[10px] text-muted-foreground">
@@ -288,7 +281,7 @@ export function RecipeDetailPage() {
   return (
     <div className="flex min-h-dvh min-w-0 flex-col bg-background xl:h-dvh xl:min-h-0 xl:overflow-hidden">
       {/* Верхняя панель */}
-      <div className="sticky top-0 z-10 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b bg-card px-4 py-4 sm:px-8">
+      <div className="sticky top-[var(--app-header-height,0rem)] z-10 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b bg-card px-4 py-4 sm:px-8">
         <button
           onClick={() => navigate({ to: "/recipes" })}
           className="text-muted-foreground text-sm flex items-center gap-2 transition-all hover:opacity-70"

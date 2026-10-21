@@ -1,6 +1,9 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
+import apiClient from "@/api/apiClient";
 import { AxiosError } from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { authApi } from "@/api/auth/api";
+import { authResponse } from "./fixtures";
 import { favoritesApi } from "@/api/favorites/api";
 import { recipesApi } from "@/api/recipes/api";
 import { useAuthStore } from "@/store/auth";
@@ -117,13 +120,33 @@ describe("Страница избранного", () => {
 
   it("предлагает повторный вход при ответе 401", async () => {
     useAuthStore.getState().setAccessToken(token());
-    const error = new AxiosError("Сессия истекла");
-    error.response = { status: 401 } as AxiosError["response"];
+    vi.mocked(favoritesApi.getAll).mockRestore();
+    const adapter = apiClient.defaults.adapter;
+    apiClient.defaults.adapter = async (config) => {
+      throw new AxiosError("Сессия истекла", "ERR_BAD_REQUEST", config, undefined,
+        { status: 401, statusText: "Unauthorized", data: {}, headers: {}, config });
+    };
+    try {
+      await renderApp("/favorites");
+      expect(await screen.findByRole("link", { name: "Войти в аккаунт" })).toBeVisible();
+      expect(useAuthStore.getState().status).toBe("expired");
+      expect(screen.queryByRole("button", { name: "Выйти" })).not.toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Войти снова" })).toBeVisible();
+    } finally {
+      apiClient.defaults.adapter = adapter;
+    }
+  });
+
+  it("при 403 показывает отказ в доступе и сохраняет сессию", async () => {
+    useAuthStore.getState().setAccessToken(token());
+    const error = new AxiosError("Доступ запрещён");
+    error.response = { status: 403 } as AxiosError["response"];
     vi.mocked(favoritesApi.getAll).mockRejectedValue(error);
     await renderApp("/favorites");
-    expect(
-      await screen.findByRole("link", { name: "Войти в аккаунт" }),
-    ).toBeVisible();
+    expect(await screen.findByText("Нет доступа к избранному")).toBeVisible();
+    expect(useAuthStore.getState().status).toBe("authenticated");
+    expect(screen.getByRole("button", { name: "Выйти" })).toBeVisible();
+    expect(screen.queryByRole("link", { name: "Войти в аккаунт" })).not.toBeInTheDocument();
   });
 
   it("не показывает коллекцию предыдущего пользователя после смены аккаунта", async () => {
@@ -160,6 +183,16 @@ describe("Лайки в списке рецептов", () => {
       expect(router.state.location.pathname).toBe("/auth/login"),
     );
     expect(favoritesApi.add).not.toHaveBeenCalled();
+    expect(router.state.location.search).toMatchObject({ returnTo: "/recipes" });
+    vi.spyOn(authApi, "login").mockResolvedValue(authResponse);
+    await user.type(screen.getByPlaceholderText("Электронная почта"), "cook@example.com");
+    await user.type(screen.getByPlaceholderText("Пароль"), "password");
+    await user.click(screen.getByRole("button", { name: "Войти" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/recipes"));
+    const save = await screen.findByRole("button", { name: "Сохранить рецепт" });
+    await waitFor(() => expect(save).toBeEnabled());
+    await user.click(save);
+    await waitFor(() => expect(favoritesApi.add).toHaveBeenCalledWith("1", recipe.id));
   });
 
   it("добавляет рецепт одним запросом и синхронизирует страницу избранного", async () => {
