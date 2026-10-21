@@ -35,10 +35,19 @@ const LoginPage = () => {
       <div className="bg-card w-full max-w-md p-6 sm:p-10 rounded-xl flex flex-col items-center justify-center gap-10 border-custom border">
         <h1>Вход</h1>
 
-        <form className="flex flex-col gap-4 w-full">
+        <form
+          className="flex flex-col gap-4 w-full"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void handleLogin();
+          }}
+        >
           <input
             type="text"
             className="border-custom border-b"
+            name="email"
+            aria-label="Электронная почта"
+            autoComplete="email"
             placeholder="Электронная почта"
             value={data.email}
             onChange={(e) => {
@@ -48,6 +57,9 @@ const LoginPage = () => {
           />
           <input
             type="password"
+            name="password"
+            aria-label="Пароль"
+            autoComplete="current-password"
             placeholder="Пароль"
             className="border-custom border-b"
             value={data.password}
@@ -62,6 +74,7 @@ const LoginPage = () => {
               className="text-[#a60c25]!"
             />
           )}
+          <Button type="submit" text="Войти" />
         </form>
         <div>
           <span>Нет аккаунта? </span>
@@ -71,12 +84,6 @@ const LoginPage = () => {
             </Link>
           </span>
         </div>
-        <Button
-          text="Войти"
-          onClick={() => {
-            handleLogin();
-          }}
-        />
       </div>
     </div>
   );

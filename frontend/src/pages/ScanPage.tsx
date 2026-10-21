@@ -188,7 +188,7 @@ export function ScanPage() {
             <Link
               to={lastIngredients.length > 0 ? recipesListRoute.to : "."}
               className={cn(
-                "text-primary-foreground w-full py-3.5 rounded-xl flex items-center justify-center gap-2.5",
+                "text-primary-foreground w-full px-5 py-3.5 rounded-xl flex items-center justify-center gap-2.5 text-center",
                 lastIngredientsNotFound
                   ? "bg-[rgba(61,107,79,0.5)]"
                   : "bg-primary transition-all hover:opacity-90 active:scale-[0.99] cursor-pointer",
@@ -196,7 +196,7 @@ export function ScanPage() {
               disabled={lastIngredientsNotFound}
             >
               <ChefHatIcon size={18} />
-              Найти рецепты с этими ингредиентами
+              Найти подходящие рецепты
             </Link>
           </div>
         </div>

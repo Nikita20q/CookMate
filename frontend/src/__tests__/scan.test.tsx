@@ -24,7 +24,7 @@ describe("Сканирование продуктов", () => {
     await renderApp("/");
     expect(screen.getByText("Ингредиенты не найдены")).toBeVisible();
     expect(
-      screen.getByRole("link", { name: "Найти рецепты с этими ингредиентами" }),
+      screen.getByRole("link", { name: "Найти подходящие рецепты" }),
     ).toHaveAttribute("aria-disabled", "true");
   });
 
@@ -51,10 +51,9 @@ describe("Сканирование продуктов", () => {
     expect(screen.queryByText(secondRecipe.title)).not.toBeInTheDocument();
     expect(recipesApi.findByIngredients).not.toHaveBeenCalled();
 
-    // The scan result survives leaving the list and removal of query caches.
     await act(async () => { await router.navigate({ to: "/" }); });
     client.clear();
-    await user.click(screen.getByRole("link", { name: "Найти рецепты с этими ингредиентами" }));
+    await user.click(screen.getByRole("link", { name: "Найти подходящие рецепты" }));
     expect(await screen.findByText(recipe.title)).toBeVisible();
     expect(recipesApi.findByIngredients).not.toHaveBeenCalled();
   });

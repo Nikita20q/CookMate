@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { CircleX, ScanLine, Sparkles, SlidersHorizontal } from "lucide-react";
 import { Route as ScanRoute } from "@/routes/index";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Button from "@/components/ui/Button";
 import { useIngredientsStore } from "@/store/ingredients";
 
@@ -50,6 +50,7 @@ export function RecipesListPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
 
+  const ingredientInputRef = useRef<HTMLInputElement>(null);
   const [ingToAdd, setIngToAdd] = useState("");
   const [showIngForm, setShowIngForm] = useState(false);
 
@@ -117,7 +118,10 @@ export function RecipesListPage() {
             <Ingredient
               title="+"
               className="text-xs!"
-              onClick={() => setShowIngForm(true)}
+              onClick={() => {
+                setShowIngForm(true);
+                ingredientInputRef.current?.focus();
+              }}
             />
             {currentIngredients.map((ing) => (
               <Ingredient
@@ -130,18 +134,28 @@ export function RecipesListPage() {
             ))}
           </div>
           {showIngForm && (
-            <div className="flex flex-col gap-4">
+            <form
+              className="flex flex-col gap-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                handleAddIngredient();
+              }}
+            >
               <input
+                ref={ingredientInputRef}
+                autoFocus
                 type="text"
                 className="min-w-0 w-full border-b border-custom"
                 value={ingToAdd}
                 onChange={(e) => setIngToAdd(e.target.value)}
+                aria-label="Новый ингредиент"
+                name="ingredient"
                 placeholder="Введите ингредиент"
               />
               <div className="flex flex-row gap-4 justify-between">
                 <Button
                   text="Добавить"
-                  onClick={handleAddIngredient}
+                  type="submit"
                   className="py-1!"
                 />
                 <Button
@@ -151,7 +165,7 @@ export function RecipesListPage() {
                   className="py-1!"
                 />
               </div>
-            </div>
+            </form>
           )}
 
           <div className="h-px bg-border" />

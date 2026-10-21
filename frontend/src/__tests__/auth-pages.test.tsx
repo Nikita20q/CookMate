@@ -45,6 +45,16 @@ describe("Вход в аккаунт", () => {
     expect(useAuthStore.getState().accessToken).toBe(authResponse.token);
   });
 
+  it.each(["Электронная почта", "Пароль"])("отправляет вход один раз по Enter из поля %s", async (field) => {
+    const { user, router } = await renderApp("/auth/login");
+    await user.type(screen.getByLabelText("Электронная почта"), "cook@example.com");
+    await user.type(screen.getByLabelText("Пароль"), "password");
+    await user.click(screen.getByLabelText(field));
+    await user.keyboard("{Enter}");
+    await waitFor(() => expect(router.state.location.pathname).toBe("/"));
+    expect(authApi.login).toHaveBeenCalledExactlyOnceWith("cook@example.com", "password");
+  });
+
   it.each(["/favorites", "/recipes/omlet-s-syrom", "https://evil.example", "//evil.example", "/auth/login"]) (
     "после входа безопасно возвращает на %s", async (returnTo) => {
       vi.spyOn(favoritesApi, "getAll").mockResolvedValue({ recipeNumber: 0, recipes: [] });
@@ -156,6 +166,19 @@ describe("Регистрация и подтверждение почты", () =
     expect(useAuthStore.getState().accessToken).toBe(authResponse.token);
   });
 
+  it("отправляет регистрацию и код подтверждения по Enter", async () => {
+    const { user, router } = await renderApp("/auth/register");
+    await user.type(screen.getByLabelText("Электронная почта"), "cook@example.com");
+    await user.type(screen.getByLabelText("Пароль"), "password{Enter}");
+    const input = await screen.findByLabelText("Код подтверждения");
+    expect(authApi.register).toHaveBeenCalledExactlyOnceWith("cook@example.com", "password");
+    await user.type(input, "123{Enter}");
+    expect(authApi.verifyEmail).not.toHaveBeenCalled();
+    await user.type(input, "456{Enter}");
+    await waitFor(() => expect(router.state.location.pathname).toBe("/"));
+    expect(authApi.verifyEmail).toHaveBeenCalledExactlyOnceWith("cook@example.com", "123456");
+  });
+
   it("закрывает подтверждение при отмене", async () => {
     const { user } = await renderApp("/auth/register");
     await user.type(
@@ -169,5 +192,6 @@ describe("Регистрация и подтверждение почты", () =
     await screen.findByText("Подтвердите код");
     await user.click(screen.getByRole("button", { name: "Отмена" }));
     expect(screen.queryByText("Подтвердите код")).not.toBeInTheDocument();
+    expect(authApi.verifyEmail).not.toHaveBeenCalled();
   });
 });

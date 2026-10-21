@@ -85,21 +85,21 @@ const RootLayout = () => {
         {/* Nav links */}
         <nav className="flex flex-col gap-1 px-3 pt-4 flex-1">
           {NAV_ITEMS.map(({ to, icon: Icon, label }) => {
+            const active = pathname === to || (to !== "/" && pathname.startsWith(`${to}/`));
             return (
-              <Link key={to} to={to}>
-                <span
-                  className={cn(
-                    "flex items-center gap-4 py-2 px-3 rounded-lg text-md",
-                    {
-                      "color-[var(--primary)] bg-[rgba(61,107,79,0.1)]":
-                        pathname == to,
-                      "color-[var(--muted-foreground)]": pathname != to,
-                    },
-                  )}
-                >
-                  <Icon size={18} />
-                  {label}
-                </span>
+              <Link
+                key={to}
+                to={to}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex items-center gap-4 rounded-lg px-3 py-2 text-base transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 motion-reduce:transition-none",
+                  active
+                    ? "bg-primary/10 text-primary hover:bg-primary/15 focus-visible:bg-primary/15"
+                    : "text-muted-foreground hover:bg-primary/5 hover:text-primary focus-visible:bg-primary/5 focus-visible:text-primary",
+                )}
+              >
+                <Icon size={18} />
+                {label}
               </Link>
             );
           })}

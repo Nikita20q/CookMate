@@ -56,7 +56,8 @@ describe("Выезжающие меню", () => {
     await user.click(trigger);
     const dialog = screen.getByRole("dialog", { name: "Ингредиенты" });
     await user.click(within(dialog).getByText("+"));
-    await user.type(within(dialog).getByPlaceholderText("Введите ингредиент"), "Сыр");
+    expect(within(dialog).getByLabelText("Новый ингредиент")).toHaveFocus();
+    await user.keyboard("Сыр");
     await user.click(within(dialog).getByRole("button", { name: "Добавить" }));
     await waitFor(() => expect(recipesApi.findByIngredients).toHaveBeenCalledWith(["яйцо", "сыр"]));
     await user.click(within(dialog).getByText("сыр", { selector: "span" }));

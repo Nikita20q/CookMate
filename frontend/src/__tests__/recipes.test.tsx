@@ -91,6 +91,37 @@ describe("Подбор рецептов", () => {
     expect(useIngredientsStore.getState().currentIngredients).toEqual(["яйцо"]);
   });
 
+  it("добавляет нормализованный ингредиент по Enter один раз", async () => {
+    useIngredientsStore.getState().setRecognitionResult({
+      recognizedIngredients: ["яйцо"], recipes: [recipe], recipeCount: 1,
+    });
+    const { user } = await renderApp("/recipes");
+    await user.click(screen.getByText("+"));
+    const input = screen.getByLabelText("Новый ингредиент");
+    expect(input).toHaveFocus();
+    await user.tab();
+    expect(input).not.toHaveFocus();
+    await user.click(screen.getByText("+"));
+    expect(input).toHaveFocus();
+    await user.keyboard("  Сыр  {Enter}");
+    expect(useIngredientsStore.getState().currentIngredients).toEqual(["яйцо", "сыр"]);
+    await waitFor(() => expect(recipesApi.findByIngredients).toHaveBeenCalledExactlyOnceWith(["яйцо", "сыр"]));
+    expect(screen.queryByLabelText("Новый ингредиент")).not.toBeInTheDocument();
+  });
+
+  it("отменяет добавление без отправки формы и поиска", async () => {
+    useIngredientsStore.getState().setRecognitionResult({
+      recognizedIngredients: ["яйцо"], recipes: [recipe], recipeCount: 1,
+    });
+    const { user } = await renderApp("/recipes");
+    await user.click(screen.getByText("+"));
+    await user.type(screen.getByLabelText("Новый ингредиент"), "сыр");
+    await user.click(screen.getByRole("button", { name: "Отмена" }));
+    expect(useIngredientsStore.getState().currentIngredients).toEqual(["яйцо"]);
+    expect(recipesApi.findByIngredients).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText("Новый ингредиент")).not.toBeInTheDocument();
+  });
+
   it("не добавляет дубли и пустые продукты, сохраняя результат сканирования", async () => {
     useIngredientsStore.getState().setRecognitionResult({
       recognizedIngredients: ["яйцо"], recipes: [recipe], recipeCount: 1,
