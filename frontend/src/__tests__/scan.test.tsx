@@ -98,6 +98,38 @@ describe("Сканирование продуктов", () => {
     expect(recipesApi.findByIngredients).not.toHaveBeenCalled();
   });
 
+  it("отклоняет фото больше 10 МБ без запроса и позволяет выбрать другое", async () => {
+    useIngredientsStore.getState().setCurrentIngredients(["рис"]);
+    const { user, router } = await renderApp("/");
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    const largeFile = new File([new Uint8Array(10 * 1024 * 1024 + 1)], "large.jpg", { type: "image/jpeg" });
+    await user.upload(input, largeFile);
+    expect(screen.getByRole("alert")).toHaveTextContent("Размер изображения не должен превышать 10 МБ");
+    expect(recipesApi.recognize).not.toHaveBeenCalled();
+    expect(recipesApi.findByIngredients).not.toHaveBeenCalled();
+    expect(router.state.location.pathname).toBe("/");
+    expect(useIngredientsStore.getState().currentIngredients).toEqual(["рис"]);
+    expect(input.value).toBe("");
+    expect(screen.getByRole("button", { name: "Загрузите изображение" })).toBeEnabled();
+
+    await user.upload(input, largeFile);
+    expect(recipesApi.recognize).not.toHaveBeenCalled();
+    await user.upload(input, new File(["photo"], "small.jpg", { type: "image/jpeg" }));
+    expect(await screen.findByText(recipe.title)).toBeVisible();
+    expect(recipesApi.recognize).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it.each([10 * 1024 * 1024 - 1, 10 * 1024 * 1024])("принимает фото размером %i байт", async (size) => {
+    const { user } = await renderApp("/");
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    const file = new File([new Uint8Array(size)], "fridge.jpg", { type: "image/jpeg" });
+    await user.upload(input, file);
+    expect(await screen.findByText(recipe.title)).toBeVisible();
+    expect(recipesApi.recognize).toHaveBeenCalledExactlyOnceWith(file, expect.anything());
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("блокирует повторную загрузку во время распознавания", async () => {
     const response = deferred<RecognizeResponse>();
     vi.mocked(recipesApi.recognize).mockReturnValue(response.promise);

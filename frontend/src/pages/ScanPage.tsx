@@ -6,9 +6,11 @@ import cn from "@/utils/classname-func";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Camera, Upload, ChefHatIcon, CircleX, Loader2 } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Route as recipesListRoute } from "@/routes/recipes/index";
 import { Link } from "@tanstack/react-router";
+
+const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
 
 export function ScanPage() {
   const navigate = useNavigate();
@@ -16,6 +18,7 @@ export function ScanPage() {
     (state) => state.setRecognitionResult,
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
   const lastIngredients = useIngredientsStore(
     (state) => state.currentIngredients,
   );
@@ -37,10 +40,17 @@ export function ScanPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    recognizeMutation.mutate(file);
-
     e.target.value = "";
+    if (recognizeMutation.isPending) return;
+
+    recognizeMutation.reset();
+    if (file.size > MAX_PHOTO_SIZE) {
+      setFileError("Размер изображения не должен превышать 10 МБ. Выберите файл меньшего размера.");
+      return;
+    }
+
+    setFileError(null);
+    recognizeMutation.mutate(file);
   };
 
   return (
@@ -115,10 +125,11 @@ export function ScanPage() {
               )}
             </button>
 
-            {recognizeMutation.isError && (
+            <Hint text="Максимальный размер изображения — 10 МБ" className="text-center" />
+
+            {(fileError || recognizeMutation.isError) && (
               <p role="alert" className="text-sm text-destructive">
-                Не удалось распознать продукты. Попробуйте загрузить фото ещё
-                раз.
+                {fileError ?? "Не удалось распознать продукты. Попробуйте загрузить фото ещё раз."}
               </p>
             )}
 
