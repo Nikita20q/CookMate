@@ -18,6 +18,8 @@ export function RecipesListPage() {
     (state) => state.setCurrentIngredients,
   );
 
+  const recognitionResult = useIngredientsStore((state) => state.recognitionResult);
+
   const queryKey = useMemo(
     () => ["recipes", [...currentIngredients].sort().join(",")],
     [currentIngredients],
@@ -28,16 +30,20 @@ export function RecipesListPage() {
   };
 
   const {
-    data: recipes,
-    isError: isRecipesError,
-    isPending: isRecipesPending,
+    data: searchResult,
+    isError: isSearchError,
+    isPending: isSearchPending,
     refetch,
   } = useQuery({
     queryKey,
     queryFn: () => recipesApi.findByIngredients(currentIngredients),
-    enabled: currentIngredients.length > 0,
+    enabled: recognitionResult === null && currentIngredients.length > 0,
     staleTime: 2 * 60 * 60 * 1000,
   });
+
+  const recipes = recognitionResult ?? searchResult;
+  const isRecipesError = recognitionResult === null && isSearchError;
+  const isRecipesPending = recognitionResult === null && isSearchPending;
 
   const [ingToAdd, setIngToAdd] = useState("");
   const [showIngForm, setShowIngForm] = useState(false);

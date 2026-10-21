@@ -1,44 +1,47 @@
-// import { create } from "zustand";
-
-// interface IngredientsState {
-//   currentIngredients: string[];
-//   setCurrentIngredients: (ingredients: string[]) => void;
-//   clearIngredients: () => void;
-// }
-
-// export const useIngredientsStore = create<IngredientsState>((set) => ({
-//   currentIngredients: [],
-//   setCurrentIngredients: (ingredients) =>
-//     set({ currentIngredients: ingredients }),
-//   clearIngredients: () => set({ currentIngredients: [] }),
-// }));
-
 import { create } from "zustand";
+import type { RecognizeResponse } from "@/api/recipes/types";
 import { recipesApi } from "@/api/recipes/api";
 
 interface IngredientsState {
   currentIngredients: string[];
+  recognitionResult: RecognizeResponse | null;
+  setRecognitionResult: (result: RecognizeResponse) => void;
   isInitialized: boolean;
   setCurrentIngredients: (ingredients: string[]) => void;
   clearIngredients: () => void;
   initIngredients: () => Promise<void>;
 }
 
-export const useIngredientsStore = create<IngredientsState>((set) => ({
+export const useIngredientsStore = create<IngredientsState>((set, get) => ({
   currentIngredients: [],
+  recognitionResult: null,
   isInitialized: false,
 
   setCurrentIngredients: (ingredients) =>
     set({
       currentIngredients: ingredients.map((i) => i.toLowerCase()),
+      recognitionResult: null,
       isInitialized: true,
     }),
 
-  clearIngredients: () => set({ currentIngredients: [] }),
+  setRecognitionResult: (result) =>
+    set({
+      currentIngredients: result.recognizedIngredients.map((i) => i.toLowerCase()),
+      recognitionResult: result,
+      isInitialized: true,
+    }),
+
+  clearIngredients: () =>
+    set({ currentIngredients: [], recognitionResult: null, isInitialized: true }),
 
   initIngredients: async () => {
+    if (get().isInitialized) return;
+
     try {
       const history = await recipesApi.getSearchHistory();
+
+      // A completed scan or manual edit takes precedence over startup history.
+      if (get().isInitialized) return;
 
       if (history && history.length > 0) {
         set({
@@ -51,7 +54,7 @@ export const useIngredientsStore = create<IngredientsState>((set) => ({
       }
     } catch (error) {
       console.error("Возникла ошибка:", error);
-      set({ currentIngredients: [] });
+      if (!get().isInitialized) set({ currentIngredients: [] });
     } finally {
       set({ isInitialized: true });
     }

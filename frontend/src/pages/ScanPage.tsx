@@ -12,8 +12,8 @@ import { Link } from "@tanstack/react-router";
 
 export function ScanPage() {
   const navigate = useNavigate();
-  const setCurrentIngredients = useIngredientsStore(
-    (state) => state.setCurrentIngredients,
+  const setRecognitionResult = useIngredientsStore(
+    (state) => state.setRecognitionResult,
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastIngredients = useIngredientsStore(
@@ -23,7 +23,7 @@ export function ScanPage() {
   const recognizeMutation = useMutation({
     mutationFn: recipesApi.recognize,
     onSuccess: (data) => {
-      setCurrentIngredients(data.recognizedIngredients);
+      setRecognitionResult(data);
 
       navigate({ to: recipesListRoute.to });
     },

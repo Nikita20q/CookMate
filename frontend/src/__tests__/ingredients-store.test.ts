@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { recipesApi } from "@/api/recipes/api";
+import { deferred } from "./helpers";
+import { recipe } from "./fixtures";
+import type { SearchHistoryResponse } from "@/api/recipes/types";
 import { useIngredientsStore } from "@/store/ingredients";
 
 describe("Хранилище ингредиентов", () => {
@@ -16,6 +19,30 @@ describe("Хранилище ингредиентов", () => {
     useIngredientsStore.getState().setCurrentIngredients(["яйцо"]);
     useIngredientsStore.getState().clearIngredients();
     expect(useIngredientsStore.getState().currentIngredients).toEqual([]);
+  });
+
+  it("сбрасывает результат распознавания при изменении и очистке ингредиентов", () => {
+    const result = { recognizedIngredients: ["ЯЙЦО"], recipes: [recipe], recipeCount: 1 };
+    useIngredientsStore.getState().setRecognitionResult(result);
+    expect(useIngredientsStore.getState().recognitionResult).toEqual(result);
+    useIngredientsStore.getState().setCurrentIngredients(["рис"]);
+    expect(useIngredientsStore.getState().recognitionResult).toBeNull();
+    useIngredientsStore.getState().setRecognitionResult(result);
+    useIngredientsStore.getState().clearIngredients();
+    expect(useIngredientsStore.getState().recognitionResult).toBeNull();
+    expect(useIngredientsStore.getState().currentIngredients).toEqual([]);
+  });
+
+  it("не перезаписывает успешное распознавание запоздавшей историей", async () => {
+    const history = deferred<SearchHistoryResponse>();
+    vi.spyOn(recipesApi, "getSearchHistory").mockReturnValue(history.promise);
+    const initialization = useIngredientsStore.getState().initIngredients();
+    const result = { recognizedIngredients: ["ЯЙЦО"], recipes: [recipe], recipeCount: 1 };
+    useIngredientsStore.getState().setRecognitionResult(result);
+    history.resolve([{ id: 1, ingredients: ["рис"], createdAt: "2026-10-20" }]);
+    await initialization;
+    expect(useIngredientsStore.getState().currentIngredients).toEqual(["яйцо"]);
+    expect(useIngredientsStore.getState().recognitionResult).toEqual(result);
   });
 
   it("восстанавливает ингредиенты последнего поиска с единым регистром", async () => {

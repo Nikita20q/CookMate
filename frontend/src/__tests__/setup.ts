@@ -9,6 +9,7 @@ beforeEach(() => {
   useAuthStore.setState({ accessToken: null });
   useIngredientsStore.setState({
     currentIngredients: [],
+    recognitionResult: null,
     isInitialized: false,
   });
   vi.stubGlobal(
