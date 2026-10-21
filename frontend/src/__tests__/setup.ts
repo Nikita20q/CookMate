@@ -15,7 +15,7 @@ beforeEach(() => {
   vi.stubGlobal(
     "matchMedia",
     vi.fn((media: string) => ({
-      matches: false,
+      matches: media === "(min-width: 48rem)" || media === "(min-width: 64rem)",
       media,
       onchange: null,
       addEventListener: vi.fn(),

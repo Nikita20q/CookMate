@@ -281,7 +281,7 @@ export function RecipeDetailPage() {
   return (
     <div className="flex min-h-dvh min-w-0 flex-col bg-background xl:h-dvh xl:min-h-0 xl:overflow-hidden">
       {/* Верхняя панель */}
-      <div className="sticky top-0 z-10 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b bg-card px-4 py-4 sm:px-8">
+      <div className="sticky top-[var(--app-header-height,0rem)] z-10 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b bg-card px-4 py-4 sm:px-8">
         <button
           onClick={() => navigate({ to: "/recipes" })}
           className="text-muted-foreground text-sm flex items-center gap-2 transition-all hover:opacity-70"

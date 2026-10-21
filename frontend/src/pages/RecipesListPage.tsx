@@ -1,3 +1,4 @@
+import ResponsiveSidebar from "@/components/ui/ResponsiveSidebar";
 import { normalizeIngredient } from "@/lib/ingredients";
 import { recipesApi } from "@/api/recipes/api";
 import RecipeAccordionItem from "@/components/recipes/RecipeAccordionItem";
@@ -5,7 +6,7 @@ import Hint from "@/components/ui/Hint";
 import Ingredient from "@/components/ui/Ingredient";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { CircleX, ScanLine, Sparkles } from "lucide-react";
+import { CircleX, ScanLine, Sparkles, SlidersHorizontal } from "lucide-react";
 import { Route as ScanRoute } from "@/routes/index";
 import { useMemo, useState } from "react";
 import Button from "@/components/ui/Button";
@@ -46,6 +47,9 @@ export function RecipesListPage() {
   const isRecipesError = recognitionResult === null && isSearchError;
   const isRecipesPending = recognitionResult === null && isSearchPending;
 
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+
   const [ingToAdd, setIngToAdd] = useState("");
   const [showIngForm, setShowIngForm] = useState(false);
 
@@ -68,13 +72,29 @@ export function RecipesListPage() {
   };
 
   return (
-    <div className="min-h-screen">
-      <div className="flex gap-0 min-h-screen">
-        <div
-          className="flex-shrink-0 flex flex-col gap-5 px-7 py-10 w-[280px] bg-card"
-          style={{
-            borderRight: "1px solid var(--border)",
-          }}
+    <div className="min-h-dvh">
+      <button
+        type="button"
+        aria-label="Управлять ингредиентами"
+        aria-expanded={filtersOpen}
+        aria-controls="ingredient-filters"
+        onClick={() => setFiltersOpen(true)}
+        className="fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-4 z-30 flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-primary-foreground shadow-lg transition-transform hover:scale-105 focus-visible:outline-2 lg:hidden"
+      >
+        <SlidersHorizontal size={20} />
+        Ингредиенты
+        <span className="rounded-full bg-white/20 px-2 text-sm">{currentIngredients.length}</span>
+      </button>
+      <div className="flex min-h-dvh items-start">
+        <ResponsiveSidebar
+          id="ingredient-filters"
+          title="Ингредиенты"
+          breakpoint="lg"
+          open={filtersOpen}
+          onOpenChange={setFiltersOpen}
+          collapsed={filtersCollapsed}
+          onCollapsedChange={setFiltersCollapsed}
+          contentClassName="gap-5 px-5 py-6"
         >
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -113,7 +133,7 @@ export function RecipesListPage() {
             <div className="flex flex-col gap-4">
               <input
                 type="text"
-                className="border-b border-custom"
+                className="min-w-0 w-full border-b border-custom"
                 value={ingToAdd}
                 onChange={(e) => setIngToAdd(e.target.value)}
                 placeholder="Введите ингредиент"
@@ -136,16 +156,17 @@ export function RecipesListPage() {
 
           <div className="h-px bg-border" />
 
-          <Link to={ScanRoute.to}>
-            <button className="cursor-pointer bg-secondary text-foreground text-sm font-medium w-full py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all hover:opacity-80">
-              <ScanLine size={15} />
-              Сканировать заново
-            </button>
+          <Link
+            to={ScanRoute.to}
+            className="cursor-pointer bg-secondary text-foreground text-sm font-medium w-full py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all hover:opacity-80"
+          >
+            <ScanLine size={15} />
+            Сканировать заново
           </Link>
-        </div>
+        </ResponsiveSidebar>
 
-        <div className="flex-1 px-8 py-10">
-          <h1 className="text-3xl text-foreground mb-2">
+        <div className="min-w-0 flex-1 px-4 pt-6 pb-28 sm:px-6 lg:px-8 lg:py-10">
+          <h1 className="text-2xl text-foreground mb-2 sm:text-3xl">
             Предлагаемые рецепты
           </h1>
 
@@ -198,11 +219,15 @@ export function RecipesListPage() {
                     className="text-sm! mt-2"
                   />
                 </div>
-                <div className="flex flex-row justify-center items-center gap-4 w-full">
+                <div className="flex w-full flex-col items-center justify-center gap-3 sm:flex-row">
                   <Button
                     text="Добавить ингредиенты"
                     variant="primary"
-                    onClick={() => setShowIngForm(true)}
+                    onClick={() => {
+                      setFiltersCollapsed(false);
+                      setFiltersOpen(true);
+                      setShowIngForm(true);
+                    }}
                   />
                   <Link to={ScanRoute.to} className="w-full rounded-xl">
                     <Button

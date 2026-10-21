@@ -14,12 +14,15 @@ import { useAuthStore } from "@/store/auth";
 import { Route as loginRoute } from "@/routes/auth/login";
 import { Route as registerRoute } from "@/routes/auth/register";
 import { useIngredientsStore } from "@/store/ingredients";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Menu } from "lucide-react";
+import ResponsiveSidebar from "@/components/ui/ResponsiveSidebar";
 
 const RootLayout = () => {
   const { pathname, href } = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [navigationOpen, setNavigationOpen] = useState(false);
 
   useEffect(() => {
     return useAuthStore.subscribe((state, previous) => {
@@ -33,6 +36,7 @@ const RootLayout = () => {
   const sessionExpired = useAuthStore((state) => state.status === "expired");
 
   const handleLogout = () => {
+    setNavigationOpen(false);
     useAuthStore.getState().clearAuth();
     navigate({ to: loginRoute.to });
   };
@@ -44,10 +48,26 @@ const RootLayout = () => {
   }, [initIngredients]);
 
   return (
-    <div className="flex min-h-screen">
-      <aside
-        className="fixed top-0 left-0 z-40 hidden h-dvh w-[240px] flex-col bg-card md:flex"
-        style={{ borderRight: "1px solid var(--border)" }}
+    <div className="flex min-h-dvh [--app-header-height:4rem] md:[--app-header-height:0rem]">
+      <header className="fixed inset-x-0 top-0 z-40 flex h-16 items-center gap-3 border-b bg-card px-4 md:hidden">
+        <button
+          type="button"
+          aria-label="Открыть навигацию"
+          aria-expanded={navigationOpen}
+          aria-controls="main-navigation"
+          onClick={() => setNavigationOpen(true)}
+          className="rounded-xl p-2 text-primary hover:bg-secondary focus-visible:outline-2"
+        >
+          <Menu size={24} />
+        </button>
+        <span className="font-semibold">CookMate</span>
+      </header>
+      <ResponsiveSidebar
+        id="main-navigation"
+        title="Навигация"
+        breakpoint="md"
+        open={navigationOpen}
+        onOpenChange={setNavigationOpen}
       >
         <div
           className="px-6 pt-8 pb-6"
@@ -103,11 +123,11 @@ const RootLayout = () => {
           )}
           <Hint text="Сфотографируйте ингредиенты в наличии или загрузите фотографию" />
         </div>
-      </aside>
+      </ResponsiveSidebar>
 
       {/* Main content */}
       <main
-        className="min-h-dvh min-w-0 flex-1 md:ml-[240px]"
+        className="min-h-dvh min-w-0 flex-1 pt-16 md:ml-[240px] md:pt-0"
       >
         {sessionExpired && !pathname.startsWith("/auth/") && (
           <div role="alert" className="border-b bg-secondary px-6 py-4">

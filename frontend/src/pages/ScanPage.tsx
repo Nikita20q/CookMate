@@ -45,9 +45,9 @@ export function ScanPage() {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-5xl mx-auto px-10 py-12">
+      <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6 md:px-10 md:py-12">
         <div className="mb-10">
-          <h1 className="text-4xl font-semibold">
+          <h1 className="text-3xl font-semibold sm:text-4xl">
             Что у вас сегодня{" "}
             <span className="text-primary">в холодильнике?</span>
           </h1>
@@ -66,7 +66,7 @@ export function ScanPage() {
           className="hidden"
         />
 
-        <div className="grid grid-cols-2 gap-8 items-start">
+        <div className="grid grid-cols-1 gap-6 items-start lg:grid-cols-2 lg:gap-8">
           <div className="flex flex-col gap-4">
             <button className="w-full rounded-2xl h-[300px] border-primary border-[2px] border-dashed bg-card flex flex-col items-center justify-center gap-5 transition-all hover:opacity-90 active:scale-[0.99]">
               <div className="w-20 h-20 rounded-full flex items-center justify-center bg-secondary">

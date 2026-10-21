@@ -58,7 +58,7 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center">
+    <div className="min-h-[calc(100dvh-var(--app-header-height,0rem))] flex flex-col items-center justify-center px-4 py-8">
       {showConfirmCode && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
@@ -108,7 +108,7 @@ const RegisterPage = () => {
           </div>
         </div>
       )}
-      <div className="bg-card p-10 min-w-100 rounded-xl flex flex-col items-center justify-center gap-10 border-custom border">
+      <div className="bg-card w-full max-w-md p-6 sm:p-10 rounded-xl flex flex-col items-center justify-center gap-10 border-custom border">
         <h1>Регистрация</h1>
 
         <form className="flex flex-col gap-4 w-full">

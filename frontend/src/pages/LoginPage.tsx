@@ -31,8 +31,8 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center">
-      <div className="bg-card p-10 min-w-100 rounded-xl flex flex-col items-center justify-center gap-10 border-custom border">
+    <div className="min-h-[calc(100dvh-var(--app-header-height,0rem))] flex flex-col items-center justify-center px-4 py-8">
+      <div className="bg-card w-full max-w-md p-6 sm:p-10 rounded-xl flex flex-col items-center justify-center gap-10 border-custom border">
         <h1>Вход</h1>
 
         <form className="flex flex-col gap-4 w-full">
