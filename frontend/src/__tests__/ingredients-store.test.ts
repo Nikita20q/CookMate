@@ -15,6 +15,34 @@ describe("Хранилище ингредиентов", () => {
     expect(useIngredientsStore.getState().isInitialized).toBe(true);
   });
 
+  it.each(["manual", "recognition", "history"])(
+    "нормализует пробелы и дубли из источника %s", async (source) => {
+      const ingredients = [" ЯЙЦО ", "яйцо", " Зелёный  лук ", "ЗЕЛЁНЫЙ\tЛУК", " "];
+      if (source === "manual") {
+        useIngredientsStore.getState().setCurrentIngredients(ingredients);
+      } else if (source === "recognition") {
+        useIngredientsStore.getState().setRecognitionResult({
+          recognizedIngredients: ingredients, recipes: [recipe], recipeCount: 1,
+        });
+      } else {
+        vi.spyOn(recipesApi, "getSearchHistory").mockResolvedValue([
+          { id: 1, ingredients, createdAt: "2026-10-21" },
+        ]);
+        await useIngredientsStore.getState().initIngredients();
+      }
+      expect(useIngredientsStore.getState().currentIngredients).toEqual(["яйцо", "зелёный лук"]);
+    },
+  );
+
+  it("не сбрасывает рецепты распознавания при добавлении дубля", () => {
+    const result = { recognizedIngredients: ["Яйцо"], recipes: [recipe], recipeCount: 1 };
+    useIngredientsStore.getState().setRecognitionResult(result);
+    const original = useIngredientsStore.getState().currentIngredients;
+    useIngredientsStore.getState().setCurrentIngredients(["яйцо", " ЯЙЦО ", ""]);
+    expect(useIngredientsStore.getState().recognitionResult).toBe(result);
+    expect(useIngredientsStore.getState().currentIngredients).toBe(original);
+  });
+
   it("очищает список ингредиентов", () => {
     useIngredientsStore.getState().setCurrentIngredients(["яйцо"]);
     useIngredientsStore.getState().clearIngredients();

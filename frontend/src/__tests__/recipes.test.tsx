@@ -1,8 +1,10 @@
-import { act, screen, waitFor } from "@testing-library/react";
+import { useAuthStore } from "@/store/auth";
+import { favoritesApi } from "@/api/favorites/api";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { recipesApi } from "@/api/recipes/api";
 import { useIngredientsStore } from "@/store/ingredients";
-import { detail, recipe } from "./fixtures";
+import { detail, recipe, token } from "./fixtures";
 import { deferred, renderApp } from "./helpers";
 import type { RecognizeResponse } from "@/api/recipes/types";
 import type { RecipeDetail } from "@/types/recipes";
@@ -87,6 +89,59 @@ describe("Подбор рецептов", () => {
     );
     await user.click(screen.getByText("сыр", { selector: "span" }));
     expect(useIngredientsStore.getState().currentIngredients).toEqual(["яйцо"]);
+  });
+
+  it("не добавляет дубли и пустые продукты, сохраняя результат сканирования", async () => {
+    useIngredientsStore.getState().setRecognitionResult({
+      recognizedIngredients: ["яйцо"], recipes: [recipe], recipeCount: 1,
+    });
+    const { user } = await renderApp("/recipes");
+    for (const value of [" ЯЙЦО ", "   "]) {
+      await user.click(screen.getByText("+"));
+      await user.type(screen.getByPlaceholderText("Введите ингредиент"), value);
+      await user.click(screen.getByRole("button", { name: "Добавить" }));
+      if (screen.queryByRole("button", { name: "Отмена" })) {
+        await user.click(screen.getByRole("button", { name: "Отмена" }));
+      }
+    }
+    expect(useIngredientsStore.getState().currentIngredients).toEqual(["яйцо"]);
+    expect(recipesApi.findByIngredients).not.toHaveBeenCalled();
+    await user.click(screen.getByText("+"));
+    await user.type(screen.getByPlaceholderText("Введите ингредиент"), " Зелёный  лук ");
+    await user.click(screen.getByRole("button", { name: "Добавить" }));
+    await waitFor(() => expect(recipesApi.findByIngredients).toHaveBeenCalledWith(["яйцо", "зелёный лук"]));
+  });
+
+  it("показывает одинаковое совпадение в списке, деталях и избранном", async () => {
+    const components = [" Яйцо ", "яйцо", "Сыр", "СЫР ", " Зелёный  лук ", " "];
+    useAuthStore.getState().setAccessToken(token());
+    useIngredientsStore.getState().setCurrentIngredients([" ЯЙЦО ", "яйцо", "ЗЕЛЁНЫЙ ЛУК"]);
+    vi.spyOn(favoritesApi, "getAll").mockResolvedValue({
+      recipeNumber: 1, recipes: [{ ...recipe, components }],
+    });
+    vi.mocked(recipesApi.findByIngredients).mockResolvedValue({
+      recognizedIngredients: [], recipeCount: 1, recipes: [{ ...recipe, components }],
+    });
+    vi.mocked(recipesApi.getBySlug).mockResolvedValue({ ...detail, components });
+    const { user, router } = await renderApp("/recipes");
+    await user.click(await screen.findByRole("button", { name: /Омлет с сыром/ }));
+    expect(screen.getByText("67%")).toBeVisible();
+    expect(screen.getByText(/ингредиентов в наличии/)).toHaveTextContent("2/3 ингредиентов в наличии");
+    expect(screen.getByText("✓ Яйцо")).toHaveClass("text-primary");
+    expect(screen.getByText("✓ Зелёный лук")).toHaveClass("text-primary");
+    expect(screen.getByText("Сыр", { exact: true })).not.toHaveClass("text-primary");
+    await user.click(screen.getByRole("link", { name: "Посмотреть полный рецепт" }));
+    expect(await screen.findByText("67% совпадение")).toBeVisible();
+    const overview = within(screen.getByRole("region", { name: "Информация о рецепте" }));
+    expect(overview.getByText(/в кладовой/)).toHaveTextContent("2/3 в кладовой");
+    expect(overview.getAllByText("купить")).toHaveLength(1);
+    expect(overview.getByText("купить").parentElement).toHaveTextContent("Сыр");
+    expect(overview.getAllByText("Яйцо", { exact: true })).toHaveLength(1);
+    await act(async () => { await router.navigate({ to: "/favorites" }); });
+    expect(await screen.findByText("67% совпадение")).toBeVisible();
+    const card = within(screen.getByRole("article"));
+    expect(card.getAllByText("Яйцо", { exact: true })).toHaveLength(1);
+    expect(card.getByText("Зелёный лук")).toBeVisible();
   });
 
   it("раскрывает карточку и открывает полный рецепт", async () => {

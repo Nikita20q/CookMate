@@ -1,3 +1,4 @@
+import { normalizeIngredients } from "@/lib/ingredients";
 import { create } from "zustand";
 import type { RecognizeResponse } from "@/api/recipes/types";
 import { recipesApi } from "@/api/recipes/api";
@@ -18,15 +19,22 @@ export const useIngredientsStore = create<IngredientsState>((set, get) => ({
   isInitialized: false,
 
   setCurrentIngredients: (ingredients) =>
-    set({
-      currentIngredients: ingredients.map((i) => i.toLowerCase()),
-      recognitionResult: null,
-      isInitialized: true,
+    set((state) => {
+      const normalized = normalizeIngredients(ingredients);
+      if (state.isInitialized && normalized.length === state.currentIngredients.length &&
+          normalized.every((ingredient, index) => ingredient === state.currentIngredients[index])) {
+        return state;
+      }
+      return {
+        currentIngredients: normalized,
+        recognitionResult: null,
+        isInitialized: true,
+      };
     }),
 
   setRecognitionResult: (result) =>
     set({
-      currentIngredients: result.recognizedIngredients.map((i) => i.toLowerCase()),
+      currentIngredients: normalizeIngredients(result.recognizedIngredients),
       recognitionResult: result,
       isInitialized: true,
     }),
@@ -45,9 +53,7 @@ export const useIngredientsStore = create<IngredientsState>((set, get) => ({
 
       if (history && history.length > 0) {
         set({
-          currentIngredients: history[0].ingredients.map((ingredient) =>
-            ingredient.toLowerCase(),
-          ),
+          currentIngredients: normalizeIngredients(history[0].ingredients),
         });
       } else {
         set({ currentIngredients: [] });

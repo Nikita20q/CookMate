@@ -1,3 +1,4 @@
+import { normalizeIngredient } from "@/lib/ingredients";
 import { recipesApi } from "@/api/recipes/api";
 import RecipeAccordionItem from "@/components/recipes/RecipeAccordionItem";
 import Hint from "@/components/ui/Hint";
@@ -49,8 +50,9 @@ export function RecipesListPage() {
   const [showIngForm, setShowIngForm] = useState(false);
 
   const handleAddIngredient = () => {
-    if (ingToAdd.length == 0) return;
-    handleIngredientChange([...currentIngredients, ingToAdd]);
+    const ingredient = normalizeIngredient(ingToAdd);
+    if (!ingredient) return;
+    handleIngredientChange([...currentIngredients, ingredient]);
     setShowIngForm(false);
     setIngToAdd("");
   };
@@ -112,7 +114,8 @@ export function RecipesListPage() {
               <input
                 type="text"
                 className="border-b border-custom"
-                onChange={(e) => setIngToAdd(e.target.value.trim())}
+                value={ingToAdd}
+                onChange={(e) => setIngToAdd(e.target.value)}
                 placeholder="Введите ингредиент"
               />
               <div className="flex flex-row gap-4 justify-between">
