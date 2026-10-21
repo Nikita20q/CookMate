@@ -41,7 +41,7 @@ public class RecipeService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        int minMatches = Math.max(1, normalizedNames.size() / 3);
+        int minMatches = Math.max(1, normalizedNames.size() / 4);
 
         List<Long> recipeIds = recipeRepository.findRecipeIdsByIngredients(normalizedNames, minMatches);
 

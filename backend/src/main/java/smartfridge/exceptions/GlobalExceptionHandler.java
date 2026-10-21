@@ -1,14 +1,16 @@
 package smartfridge.exceptions;
 
-import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
-import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -19,107 +21,54 @@ import java.util.stream.Collectors;
 @Slf4j
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<Map<String, Object>> handleMaxUploadSize(MaxUploadSizeExceededException ex) {
-        log.error("Превышен размер файла: {}", ex.getMessage());
-
-        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
-                .body(createErrorResponse(
-                        "Файл слишком большой",
-                        "Максимальный размер файла — 10MB. Попробуйте уменьшить размер изображения.",
-                        HttpStatus.PAYLOAD_TOO_LARGE.value()
-                ));
-    }
-
-    @ExceptionHandler(MultipartException.class)
-    public ResponseEntity<Map<String, Object>> handleMultipartException(MultipartException ex) {
-        log.error("Ошибка при загрузке файла: {}", ex.getMessage());
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(createErrorResponse(
-                        "Ошибка при загрузке файла",
-                        "Не удалось обработать файл. Убедитесь, что это изображение.",
-                        HttpStatus.BAD_REQUEST.value()
-                ));
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<Map<String, Object>> handleBusinessException(BusinessException ex) {
+        return buildErrorResponse(ex.getTitle(), ex.getMessage(), ex.getStatus());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
-        log.error("Ошибка валидации: {}", ex.getMessage());
-
-        String errors = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(err -> err.getField() + ": " + err.getDefaultMessage())
+    public ResponseEntity<Map<String, Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        String errors = ex.getBindingResult().getFieldErrors().stream()
+                .map(FieldError::getDefaultMessage)
                 .collect(Collectors.joining(", "));
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(createErrorResponse(
-                        "Ошибка валидации данных",
-                        errors,
-                        HttpStatus.BAD_REQUEST.value()
-                ));
+        return buildErrorResponse("Ошибка валидации", errors, HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<Map<String, Object>> handleConstraintViolation(ConstraintViolationException ex) {
-        log.error("Нарушение ограничений: {}", ex.getMessage());
-
-        String errors = ex.getConstraintViolations()
-                .stream()
-                .map(v -> v.getPropertyPath() + ": " + v.getMessage())
-                .collect(Collectors.joining(", "));
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(createErrorResponse(
-                        "Некорректные данные",
-                        errors,
-                        HttpStatus.BAD_REQUEST.value()
-                ));
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<Map<String, Object>> handleMissingPart(MissingServletRequestPartException ex) {
+        return buildErrorResponse("Некорректный запрос", "Отсутствует обязательная часть запроса: " + ex.getRequestPartName(), HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
-        log.error("Некорректный аргумент: {}", ex.getMessage());
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(createErrorResponse(
-                        "Некорректный запрос",
-                        ex.getMessage(),
-                        HttpStatus.BAD_REQUEST.value()
-                ));
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleMaxSize(MaxUploadSizeExceededException ex) {
+        return buildErrorResponse("Превышен размер", "Размер файла превышает допустимый лимит (10 МБ)", HttpStatus.PAYLOAD_TOO_LARGE);
     }
 
-    @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<Map<String, Object>> handleBusinessException(BusinessException ex) {
-        log.error("Бизнес-ошибка: {}", ex.getMessage());
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<Map<String, Object>> handleUnsupportedMediaType(HttpMediaTypeNotSupportedException ex) {
+        return buildErrorResponse("Неподдерживаемый тип", "Неверный формат файла или Content-Type", HttpStatus.BAD_REQUEST);
+    }
 
-        return ResponseEntity.status(ex.getStatus())
-                .body(createErrorResponse(
-                        ex.getTitle(),
-                        ex.getMessage(),
-                        ex.getStatus().value()
-                ));
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleNotReadable(HttpMessageNotReadableException ex) {
+        if (ex.getMessage() != null && ex.getMessage().contains("UnrecognizedPropertyException")) {
+            return buildErrorResponse("Некорректный запрос", "Обнаружены неизвестные поля в JSON", HttpStatus.BAD_REQUEST);
+        }
+        return buildErrorResponse("Некорректный запрос", "Невозможно прочитать JSON", HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
-        log.error("Непредвиденная ошибка", ex);
-
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(createErrorResponse(
-                        "Внутренняя ошибка сервера",
-                        "Произошла непредвиденная ошибка. Попробуйте позже.",
-                        HttpStatus.INTERNAL_SERVER_ERROR.value()
-                ));
+    public ResponseEntity<Map<String, Object>> handleAllExceptions(Exception ex) {
+        log.error("Непредвиденная ошибка: ", ex);
+        return buildErrorResponse("Внутренняя ошибка сервера", "Произошла непредвиденная ошибка", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    private Map<String, Object> createErrorResponse(String title, String message, int status) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("timestamp", LocalDateTime.now().toString());
-        response.put("title", title);
-        response.put("message", message);
-        response.put("status", status);
-        return response;
+    private ResponseEntity<Map<String, Object>> buildErrorResponse(String title, String message, HttpStatus status) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("title", title);
+        body.put("message", message);
+        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("status", status.value());
+        return ResponseEntity.status(status).body(body);
     }
 }

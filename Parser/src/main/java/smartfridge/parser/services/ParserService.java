@@ -53,7 +53,7 @@ public class ParserService {
                     pageNumber, pageStats[0], pageStats[1]);
 
             try {
-                Thread.sleep(1000);
+                Thread.sleep(250);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;
@@ -81,7 +81,7 @@ public class ParserService {
             }
         }
 
-        return new int[]{saved, skipped};
+        return new int[] { saved, skipped };
     }
 
     private boolean saveRecipe(RecipeCard card) {
@@ -115,7 +115,8 @@ public class ParserService {
                 .build();
 
         for (String ingredientName : card.getIngredients()) {
-            if (ingredientName == null || ingredientName.trim().isEmpty()) continue;
+            if (ingredientName == null || ingredientName.trim().isEmpty())
+                continue;
 
             String normalizedName = ingredientName.trim();
 
@@ -233,7 +234,8 @@ public class ParserService {
     }
 
     private Integer parseMinutes(String timeStr) {
-        if (timeStr == null || timeStr.isEmpty()) return null;
+        if (timeStr == null || timeStr.isEmpty())
+            return null;
         try {
             return Integer.parseInt(timeStr.replaceAll("[^\\d]", ""));
         } catch (NumberFormatException e) {
@@ -242,7 +244,8 @@ public class ParserService {
     }
 
     private Integer parseCalories(String kcalStr) {
-        if (kcalStr == null || kcalStr.isEmpty()) return null;
+        if (kcalStr == null || kcalStr.isEmpty())
+            return null;
         try {
             return Integer.parseInt(kcalStr.replaceAll("[^\\d]", ""));
         } catch (NumberFormatException e) {
