@@ -1,4 +1,5 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { safeReturnTo } from "@/lib/session";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { Route as registerRoute } from "@/routes/auth/register";
 import { useState } from "react";
 import { authApi } from "@/api/auth/api";
@@ -8,6 +9,7 @@ import Hint from "@/components/ui/Hint";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { returnTo } = useSearch({ from: "/auth/login" });
   const [data, setData] = useState<{ email: string; password: string }>({
     email: "",
     password: "",
@@ -22,7 +24,7 @@ const LoginPage = () => {
     try {
       const result = await authApi.login(data.email.trim(), data.password);
       useAuthStore.getState().setAccessToken(result.token);
-      navigate({ to: "/" });
+      navigate({ href: safeReturnTo(returnTo) });
     } catch {
       setIsError(true);
     }
@@ -64,7 +66,7 @@ const LoginPage = () => {
         <div>
           <span>Нет аккаунта? </span>
           <span>
-            <Link to={registerRoute.to} className="underline">
+            <Link to={registerRoute.to} search={{ returnTo }} className="underline">
               Регистрация
             </Link>
           </span>

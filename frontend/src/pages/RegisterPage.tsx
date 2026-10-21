@@ -1,4 +1,5 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { safeReturnTo } from "@/lib/session";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { Route as loginRoute } from "@/routes/auth/login";
 import { useState } from "react";
 import { authApi } from "@/api/auth/api";
@@ -9,6 +10,7 @@ import { useAuthStore } from "@/store/auth";
 
 const RegisterPage = () => {
   const navigate = useNavigate();
+  const { returnTo } = useSearch({ from: "/auth/register" });
   const [isError, setIsError] = useState(false);
   const [code, setCode] = useState("");
 
@@ -25,7 +27,7 @@ const RegisterPage = () => {
     try {
       const result = await authApi.verifyEmail(data.email, code);
       useAuthStore.getState().setAccessToken(result.token);
-      navigate({ to: "/" });
+      navigate({ href: safeReturnTo(returnTo) });
     } catch (e) {
       console.error(e);
     }
@@ -147,7 +149,7 @@ const RegisterPage = () => {
         </form>
         <div>
           Есть аккаунт?{" "}
-          <Link to={loginRoute.to} className="underline">
+          <Link to={loginRoute.to} search={{ returnTo }} className="underline">
             Войти
           </Link>
         </div>

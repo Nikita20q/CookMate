@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Link,
   Outlet,
@@ -16,9 +17,20 @@ import { useIngredientsStore } from "@/store/ingredients";
 import { useEffect } from "react";
 
 const RootLayout = () => {
-  const { pathname } = useLocation();
+  const { pathname, href } = useLocation();
   const navigate = useNavigate();
-  const isAuthenticated = useAuthStore((state) => state.accessToken !== null);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    return useAuthStore.subscribe((state, previous) => {
+      if (state.accessToken === previous.accessToken) return;
+      void queryClient.cancelQueries({ queryKey: ["favorites"] });
+      queryClient.removeQueries({ queryKey: ["favorites"] });
+    });
+  }, [queryClient]);
+  const isAuthenticated = useAuthStore((state) => state.status === "authenticated");
+
+  const sessionExpired = useAuthStore((state) => state.status === "expired");
 
   const handleLogout = () => {
     useAuthStore.getState().clearAuth();
@@ -79,7 +91,7 @@ const RootLayout = () => {
             pathname != loginRoute.to &&
             pathname != registerRoute.to && (
               <div>
-                <Link to={loginRoute.to}>
+                <Link to={loginRoute.to} search={{ returnTo: href }}>
                   <Button text="Войти" />
                 </Link>
               </div>
@@ -97,6 +109,14 @@ const RootLayout = () => {
       <main
         className="min-h-dvh min-w-0 flex-1 md:ml-[240px]"
       >
+        {sessionExpired && !pathname.startsWith("/auth/") && (
+          <div role="alert" className="border-b bg-secondary px-6 py-4">
+            Сессия истекла.{" "}
+            <Link to="/auth/login" search={{ returnTo: href }} className="underline">
+              Войти снова
+            </Link>
+          </div>
+        )}
         <Outlet />
         {/* <TanStackRouterDevtools /> */}
       </main>

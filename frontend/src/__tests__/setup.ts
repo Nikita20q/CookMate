@@ -6,7 +6,7 @@ import { useIngredientsStore } from "@/store/ingredients";
 
 beforeEach(() => {
   localStorage.clear();
-  useAuthStore.setState({ accessToken: null });
+  useAuthStore.getState().clearAuth();
   useIngredientsStore.setState({
     currentIngredients: [],
     recognitionResult: null,

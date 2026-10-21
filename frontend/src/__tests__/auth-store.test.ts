@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { getAccessToken, useAuthStore } from "@/store/auth";
 import { token } from "./fixtures";
+
+afterEach(() => vi.useRealTimers());
 
 describe("Хранилище авторизации", () => {
   it("считает гостя неавторизованным", () => {
@@ -24,6 +26,33 @@ describe("Хранилище авторизации", () => {
     );
     await useAuthStore.persist.rehydrate();
     expect(getAccessToken()).toBe(token());
+  });
+
+  it("завершает сессию по exp без HTTP-запросов", () => {
+    vi.useFakeTimers();
+    const exp = Math.floor(Date.now() / 1000) + 5;
+    useAuthStore.getState().setAccessToken(token("1", exp));
+    vi.advanceTimersByTime(5000);
+    expect(useAuthStore.getState().status).toBe("expired");
+    expect(getAccessToken()).toBeNull();
+    expect(useAuthStore.getState().getUserId()).toBeNull();
+    expect(JSON.parse(localStorage.getItem("auth-storage")!).state.accessToken).toBeNull();
+  });
+
+  it("отклоняет истёкший токен из localStorage", async () => {
+    localStorage.setItem("auth-storage", JSON.stringify({
+      state: { accessToken: token("1", 1) }, version: 0,
+    }));
+    await useAuthStore.persist.rehydrate();
+    expect(getAccessToken()).toBeNull();
+    expect(useAuthStore.getState().status).toBe("expired");
+  });
+
+  it.each([undefined, "4000000000", null, 0])("отклоняет отсутствующий или неверный exp: %s", (exp) => {
+    const value = `header.${btoa(JSON.stringify({ sub: "1", exp }))}.signature`;
+    useAuthStore.getState().setAccessToken(value);
+    expect(getAccessToken()).toBeNull();
+    expect(useAuthStore.getState().isAuthenticated()).toBe(false);
   });
 
   it("удаляет токен при выходе", () => {

@@ -25,10 +25,9 @@ export default function FavoritesPage() {
   const currentIngredients = useIngredientsStore(
     (state) => state.currentIngredients,
   );
-  const needsLogin =
-    !userId ||
-    (isAxiosError(favorites.error) &&
-      [401, 403].includes(favorites.error.response?.status ?? 0));
+  const needsLogin = !userId;
+  const forbidden =
+    isAxiosError(favorites.error) && favorites.error.response?.status === 403;
 
   return (
     <div className="mx-auto max-w-[1040px] px-4 py-8 sm:px-8 sm:py-10">
@@ -63,7 +62,7 @@ export default function FavoritesPage() {
             Войдите в аккаунт, чтобы добавлять рецепты в избранное и
             возвращаться к ним в любое время.
           </p>
-          <Link to="/auth/login" className={linkClass}>
+          <Link to="/auth/login" search={{ returnTo: "/favorites" }} className={linkClass}>
             Войти в аккаунт
           </Link>
         </div>
@@ -81,23 +80,29 @@ export default function FavoritesPage() {
           className="rounded-2xl border bg-card px-6 py-16 text-center"
         >
           <h2 className="mb-2 text-xl font-semibold">
-            Не удалось загрузить избранное
+            {forbidden
+              ? "Нет доступа к избранному"
+              : "Не удалось загрузить избранное"}
           </h2>
           <p className="mb-6 text-sm text-muted-foreground">
-            Проверьте подключение и попробуйте снова.
+            {forbidden
+              ? "У вас нет прав для просмотра этой коллекции."
+              : "Проверьте подключение и попробуйте снова."}
           </p>
-          <button
-            type="button"
-            className={linkClass}
-            disabled={favorites.isFetching}
-            onClick={() => void favorites.refetch()}
-          >
-            <RefreshCw
-              size={16}
-              className={favorites.isFetching ? "animate-spin" : ""}
-            />
-            Повторить
-          </button>
+          {!forbidden && (
+            <button
+              type="button"
+              className={linkClass}
+              disabled={favorites.isFetching}
+              onClick={() => void favorites.refetch()}
+            >
+              <RefreshCw
+                size={16}
+                className={favorites.isFetching ? "animate-spin" : ""}
+              />
+              Повторить
+            </button>
+          )}
         </div>
       ) : favorites.data?.recipes.length ? (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
