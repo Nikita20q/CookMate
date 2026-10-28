@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ChefHat, Heart, LoaderCircle, RefreshCw } from "lucide-react";
-import { isAxiosError } from "axios";
+import { getApiError } from "@/api/errors";
 import FavoriteRecipeCard from "@/components/recipes/FavoriteRecipeCard";
 import { useQuery } from "@tanstack/react-query";
 import { favoritesApi } from "@/api/favorites/api";
@@ -26,8 +26,8 @@ export default function FavoritesPage() {
     (state) => state.currentIngredients,
   );
   const needsLogin = !userId;
-  const forbidden =
-    isAxiosError(favorites.error) && favorites.error.response?.status === 403;
+  const apiError = getApiError(favorites.error, "Проверьте подключение и попробуйте снова.");
+  const forbidden = apiError.status === 403;
 
   return (
     <div className="mx-auto max-w-[1040px] px-4 py-8 sm:px-8 sm:py-10">
@@ -85,9 +85,7 @@ export default function FavoritesPage() {
               : "Не удалось загрузить избранное"}
           </h2>
           <p className="mb-6 text-sm text-muted-foreground">
-            {forbidden
-              ? "У вас нет прав для просмотра этой коллекции."
-              : "Проверьте подключение и попробуйте снова."}
+            {apiError.message}
           </p>
           {!forbidden && (
             <button

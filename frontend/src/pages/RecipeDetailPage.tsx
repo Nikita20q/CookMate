@@ -1,5 +1,6 @@
 import { matchRecipe } from "@/lib/ingredients";
 import { recipesApi } from "@/api/recipes/api";
+import { getApiError } from "@/api/errors";
 import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import { useIngredientsStore } from "@/store/ingredients";
 import cn from "@/utils/classname-func";
@@ -31,6 +32,7 @@ export function RecipeDetailPage() {
     data: recipe,
     isPending,
     isError,
+    error,
     refetch,
   } = useQuery({
     queryKey: ["recipes", recipeSlug],
@@ -68,7 +70,7 @@ export function RecipeDetailPage() {
         role="alert"
         className="flex min-h-screen flex-col items-center justify-center gap-4"
       >
-        <p>Не удалось загрузить рецепт.</p>
+        <p>{getApiError(error, "Не удалось загрузить рецепт.").message}</p>
         <button
           onClick={() => {
             refetch();
