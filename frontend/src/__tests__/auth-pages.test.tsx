@@ -1,6 +1,6 @@
 import { act, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AxiosHeaders } from "axios";
+import { AxiosError, AxiosHeaders } from "axios";
 import { authApi } from "@/api/auth/api";
 import { useAuthStore } from "@/store/auth";
 import { favoritesApi } from "@/api/favorites/api";
@@ -27,9 +27,8 @@ describe("Вход в аккаунт", () => {
     const { user } = await renderApp("/auth/login");
     await user.click(screen.getByRole("button", { name: "Войти" }));
     expect(authApi.login).not.toHaveBeenCalled();
-    expect(
-      screen.getByText("Неверное имя пользователя или пароль"),
-    ).toBeVisible();
+    expect(await screen.findByText("Введите электронную почту")).toBeVisible();
+    expect(screen.getByText("Введите пароль")).toBeVisible();
   });
 
   it("сохраняет токен и открывает сканирование после входа", async () => {
@@ -88,13 +87,51 @@ describe("Вход в аккаунт", () => {
     await user.type(screen.getByPlaceholderText("Пароль"), "wrong");
     await user.click(screen.getByRole("button", { name: "Войти" }));
     expect(
-      await screen.findByText("Неверное имя пользователя или пароль"),
+      await screen.findByText("Неверный пароль"),
     ).toBeVisible();
     expect(useAuthStore.getState().accessToken).toBeNull();
     await user.type(screen.getByPlaceholderText("Пароль"), "1");
     expect(
-      screen.queryByText("Неверное имя пользователя или пароль"),
+      screen.queryByText("Неверный пароль"),
     ).not.toBeInTheDocument();
+  });
+
+  it("показывает сообщение backend о неподтверждённой почте", async () => {
+    const error = new AxiosError("Request failed");
+    error.response = { status: 403, data: { title: "Доступ запрещён", message: "Email не подтверждён. Проверьте почту." } } as AxiosError["response"];
+    vi.mocked(authApi.login).mockRejectedValue(error);
+    const { user } = await renderApp("/auth/login");
+    await user.type(screen.getByLabelText("Электронная почта"), "cook@example.com");
+    await user.type(screen.getByLabelText("Пароль"), "password{Enter}");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Email не подтверждён. Проверьте почту.");
+    expect(useAuthStore.getState().accessToken).toBeNull();
+  });
+
+  it("связывает ошибки backend с полями формы", async () => {
+    const error = new AxiosError("Request failed");
+    error.response = { status: 400, data: { errors: { email: "Почта недоступна", password: "Пароль отклонён" } } } as AxiosError["response"];
+    vi.mocked(authApi.login).mockRejectedValue(error);
+    const { user } = await renderApp("/auth/login");
+    await user.type(screen.getByLabelText("Электронная почта"), "cook@example.com");
+    await user.type(screen.getByLabelText("Пароль"), "password{Enter}");
+    expect(await screen.findByText("Почта недоступна")).toBeVisible();
+    expect(screen.getByLabelText("Электронная почта")).toHaveAccessibleDescription("Почта недоступна");
+    expect(screen.getByLabelText("Пароль")).toHaveAccessibleDescription("Пароль отклонён");
+    await user.type(screen.getByLabelText("Пароль"), "1");
+    expect(screen.queryByText("Пароль отклонён")).not.toBeInTheDocument();
+    expect(screen.getByText("Почта недоступна")).toBeVisible();
+  });
+
+  it("блокирует повторную отправку входа", async () => {
+    const request = deferred<typeof authResponse>();
+    vi.mocked(authApi.login).mockReturnValue(request.promise);
+    const { user } = await renderApp("/auth/login");
+    await user.type(screen.getByLabelText("Электронная почта"), "cook@example.com");
+    await user.type(screen.getByLabelText("Пароль"), "password{Enter}");
+    expect(screen.getByRole("button", { name: "Войти" })).toBeDisabled();
+    await user.keyboard("{Enter}");
+    expect(authApi.login).toHaveBeenCalledTimes(1);
+    await act(async () => request.resolve(authResponse));
   });
 });
 
