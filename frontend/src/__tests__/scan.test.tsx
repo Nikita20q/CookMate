@@ -21,6 +21,22 @@ beforeEach(() => {
 });
 
 describe("Сканирование продуктов", () => {
+  it("показывает ошибку истории и позволяет загрузить её повторно", async () => {
+    const { user } = await renderApp("/");
+    vi.mocked(recipesApi.getSearchHistory).mockRejectedValueOnce(new Error("История недоступна"));
+    await act(async () => {
+      useIngredientsStore.setState({ isInitialized: false });
+      await useIngredientsStore.getState().initIngredients();
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent("История недоступна");
+    vi.mocked(recipesApi.getSearchHistory).mockResolvedValueOnce([
+      { id: 1, ingredients: ["рис"], createdAt: "2026-10-28" },
+    ]);
+    await user.click(screen.getByRole("button", { name: "Повторить загрузку истории" }));
+    expect(await screen.findByText("рис")).toBeVisible();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it.each([
     { message: "Формат изображения не поддерживается" },
     { errors: { file: ["Изображение повреждено"] } },

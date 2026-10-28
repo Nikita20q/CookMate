@@ -36,6 +36,9 @@ export function ScanPage() {
   const lastIngredients = useIngredientsStore(
     (state) => state.currentIngredients,
   );
+  const historyError = useIngredientsStore((state) => state.historyError);
+  const isInitializing = useIngredientsStore((state) => state.isInitializing);
+  const initIngredients = useIngredientsStore((state) => state.initIngredients);
 
   const recognizeMutation = useMutation({
     mutationFn: recipesApi.recognize,
@@ -163,10 +166,18 @@ export function ScanPage() {
             </div>
 
             <div className="flex flex-wrap gap-2 mb-6">
+              {historyError && (
+                <div className="w-full space-y-2">
+                  <FormError message={historyError} />
+                  <button type="button" disabled={isInitializing} className="text-sm text-primary" onClick={() => void initIngredients()}>
+                    Повторить загрузку истории
+                  </button>
+                </div>
+              )}
               {lastIngredients.map((ing) => (
                 <Ingredient title={ing} key={ing} />
               ))}
-              {lastIngredients.length == 0 && (
+              {lastIngredients.length == 0 && !historyError && (
                 <div className="flex justify-center items-center flex-col gap-4">
                   <div className="w-20 h-20 rounded-full flex items-center justify-center bg-secondary">
                     <CircleX size={34} className="text-primary" />

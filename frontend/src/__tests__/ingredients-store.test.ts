@@ -100,5 +100,31 @@ describe("Хранилище ингредиентов", () => {
     await useIngredientsStore.getState().initIngredients();
     expect(useIngredientsStore.getState().isInitialized).toBe(true);
     expect(useIngredientsStore.getState().currentIngredients).toEqual([]);
+    expect(useIngredientsStore.getState().historyError).toBe("Нет сети");
+    expect(useIngredientsStore.getState().isInitializing).toBe(false);
+  });
+
+  it("повторно загружает историю после ошибки", async () => {
+    vi.spyOn(recipesApi, "getSearchHistory")
+      .mockRejectedValueOnce(new Error("История недоступна"))
+      .mockResolvedValueOnce([{ id: 1, ingredients: ["рис"], createdAt: "2026-10-28" }]);
+    await useIngredientsStore.getState().initIngredients();
+    expect(useIngredientsStore.getState().historyError).toBe("История недоступна");
+    await useIngredientsStore.getState().initIngredients();
+    expect(useIngredientsStore.getState().historyError).toBeNull();
+    expect(useIngredientsStore.getState().currentIngredients).toEqual(["рис"]);
+  });
+
+  it("не дублирует запрос истории и не показывает его ошибку после ручного ввода", async () => {
+    const history = deferred<SearchHistoryResponse>();
+    vi.spyOn(recipesApi, "getSearchHistory").mockReturnValue(history.promise);
+    const initialization = useIngredientsStore.getState().initIngredients();
+    await useIngredientsStore.getState().initIngredients();
+    expect(recipesApi.getSearchHistory).toHaveBeenCalledTimes(1);
+    useIngredientsStore.getState().setCurrentIngredients(["рис"]);
+    history.reject(new Error("Нет сети"));
+    await initialization;
+    expect(useIngredientsStore.getState().currentIngredients).toEqual(["рис"]);
+    expect(useIngredientsStore.getState().historyError).toBeNull();
   });
 });
