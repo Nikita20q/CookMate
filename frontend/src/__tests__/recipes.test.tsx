@@ -109,6 +109,15 @@ describe("Подбор рецептов", () => {
     expect(screen.queryByLabelText("Новый ингредиент")).not.toBeInTheDocument();
   });
 
+  it("показывает ошибку пустого ингредиента у поля формы", async () => {
+    const { user } = await renderApp("/recipes");
+    await user.click(screen.getByText("+"));
+    await user.type(screen.getByLabelText("Новый ингредиент"), "   {Enter}");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Введите ингредиент");
+    expect(screen.getByLabelText("Новый ингредиент")).toHaveAccessibleDescription("Введите ингредиент");
+    expect(recipesApi.findByIngredients).not.toHaveBeenCalled();
+  });
+
   it("отменяет добавление без отправки формы и поиска", async () => {
     useIngredientsStore.getState().setRecognitionResult({
       recognizedIngredients: ["яйцо"], recipes: [recipe], recipeCount: 1,

@@ -11,6 +11,8 @@ beforeEach(() => {
     currentIngredients: [],
     recognitionResult: null,
     isInitialized: false,
+    isInitializing: false,
+    historyError: null,
   });
   vi.stubGlobal(
     "matchMedia",

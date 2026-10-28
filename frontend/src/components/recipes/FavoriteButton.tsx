@@ -6,7 +6,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { isAxiosError } from "axios";
+import { getApiError } from "@/api/errors";
 import { favoritesApi } from "@/api/favorites/api";
 import { useAuthStore } from "@/store/auth";
 import type { Recipe } from "@/types/recipes";
@@ -64,17 +64,18 @@ export default function FavoriteButton({
   const loading = !!userId && (favorites.isPending || pendingMutations > 0);
   const error = mutation.error ?? favorites.error;
   const needsLogin = !userId;
-  const forbidden = isAxiosError(error) && error.response?.status === 403;
+  const apiError = getApiError(error, "Не удалось изменить избранное.");
+  const forbidden = apiError.status === 403;
 
   let label = isFavorite ? "Удалить из избранного" : "Сохранить рецепт";
   if (needsLogin) {
     label = "Войдите, чтобы сохранить рецепт";
   } else if (forbidden) {
-    label = "Нет прав для изменения избранного";
+    label = apiError.message;
   } else if (favorites.isError) {
-    label = "Повторить загрузку избранного";
+    label = `${apiError.message} — повторить загрузку избранного`;
   } else if (mutation.isError) {
-    label = "Не удалось изменить избранное. Повторить";
+    label = `${apiError.message} — повторить`;
   }
 
   return (

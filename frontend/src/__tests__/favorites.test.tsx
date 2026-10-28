@@ -102,7 +102,7 @@ describe("Страница избранного", () => {
     );
     expect(
       await screen.findByRole("button", {
-        name: "Не удалось изменить избранное. Повторить",
+        name: "Нет сети — повторить",
       }),
     ).toBeVisible();
     expect(screen.getByText(recipe.title)).toBeVisible();
@@ -140,10 +140,11 @@ describe("Страница избранного", () => {
   it("при 403 показывает отказ в доступе и сохраняет сессию", async () => {
     useAuthStore.getState().setAccessToken(token());
     const error = new AxiosError("Доступ запрещён");
-    error.response = { status: 403 } as AxiosError["response"];
+    error.response = { status: 403, data: { message: "Коллекция принадлежит другому пользователю" } } as AxiosError["response"];
     vi.mocked(favoritesApi.getAll).mockRejectedValue(error);
     await renderApp("/favorites");
     expect(await screen.findByText("Нет доступа к избранному")).toBeVisible();
+    expect(screen.getByRole("alert")).toHaveTextContent("Коллекция принадлежит другому пользователю");
     expect(useAuthStore.getState().status).toBe("authenticated");
     expect(screen.getByRole("button", { name: "Выйти" })).toBeVisible();
     expect(screen.queryByRole("link", { name: "Войти в аккаунт" })).not.toBeInTheDocument();

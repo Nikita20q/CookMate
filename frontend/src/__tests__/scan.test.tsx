@@ -1,5 +1,6 @@
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AxiosError } from "axios";
 import { recipesApi } from "@/api/recipes/api";
 import { useIngredientsStore } from "@/store/ingredients";
 import type { RecognizeResponse } from "@/api/recipes/types";
@@ -20,6 +21,39 @@ beforeEach(() => {
 });
 
 describe("Сканирование продуктов", () => {
+  it("показывает ошибку истории и позволяет загрузить её повторно", async () => {
+    const { user } = await renderApp("/");
+    vi.mocked(recipesApi.getSearchHistory).mockRejectedValueOnce(new Error("История недоступна"));
+    await act(async () => {
+      useIngredientsStore.setState({ isInitialized: false });
+      await useIngredientsStore.getState().initIngredients();
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent("История недоступна");
+    vi.mocked(recipesApi.getSearchHistory).mockResolvedValueOnce([
+      { id: 1, ingredients: ["рис"], createdAt: "2026-10-28" },
+    ]);
+    await user.click(screen.getByRole("button", { name: "Повторить загрузку истории" }));
+    expect(await screen.findByText("рис")).toBeVisible();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    { message: "Формат изображения не поддерживается" },
+    { errors: { file: ["Изображение повреждено"] } },
+  ])("показывает ошибки API загрузки %j", async (data) => {
+    const error = new AxiosError("Request failed");
+    error.response = { status: 400, data } as AxiosError["response"];
+    vi.mocked(recipesApi.recognize).mockRejectedValueOnce(error);
+    const { user } = await renderApp("/");
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    await user.upload(input, new File(["photo"], "fridge.jpg", { type: "image/jpeg" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(data.message ?? "Изображение повреждено");
+    expect(screen.getByRole("button", { name: "Загрузите изображение" })).toBeEnabled();
+    await user.upload(input, new File(["photo"], "retry.jpg", { type: "image/jpeg" }));
+    expect(await screen.findByText(recipe.title)).toBeVisible();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("показывает отсутствие предыдущего сканирования", async () => {
     await renderApp("/");
     expect(screen.getByText("Ингредиенты не найдены")).toBeVisible();
@@ -164,7 +198,7 @@ describe("Сканирование продуктов", () => {
     );
     expect(
       await screen.findByText(
-        "Не удалось распознать продукты. Попробуйте загрузить фото ещё раз.",
+        "ML недоступен",
       ),
     ).toBeVisible();
     expect(

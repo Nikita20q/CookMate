@@ -1,4 +1,5 @@
 import { recipesApi } from "@/api/recipes/api";
+import { setApiFormErrors } from "@/lib/form-errors";
 import Hint from "@/components/ui/Hint";
 import Ingredient from "@/components/ui/Ingredient";
 import { useIngredientsStore } from "@/store/ingredients";
@@ -6,7 +7,9 @@ import cn from "@/utils/classname-func";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Camera, Upload, ChefHatIcon, CircleX, Loader2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef } from "react";
+import { useController, useForm } from "react-hook-form";
+import FormError from "@/components/ui/FormError";
 import { Route as recipesListRoute } from "@/routes/recipes/index";
 import { Link } from "@tanstack/react-router";
 
@@ -18,10 +21,24 @@ export function ScanPage() {
     (state) => state.setRecognitionResult,
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [fileError, setFileError] = useState<string | null>(null);
+  const { control, handleSubmit, setError, clearErrors, formState: { errors, isSubmitting } } = useForm<{ file: File | null }>({
+    defaultValues: { file: null },
+  });
+  const { field: fileField } = useController({
+    control,
+    name: "file",
+    rules: {
+      required: "Выберите изображение",
+      validate: (file) => !file || file.size <= MAX_PHOTO_SIZE ||
+        "Размер изображения не должен превышать 10 МБ. Выберите файл меньшего размера.",
+    },
+  });
   const lastIngredients = useIngredientsStore(
     (state) => state.currentIngredients,
   );
+  const historyError = useIngredientsStore((state) => state.historyError);
+  const isInitializing = useIngredientsStore((state) => state.isInitializing);
+  const initIngredients = useIngredientsStore((state) => state.initIngredients);
 
   const recognizeMutation = useMutation({
     mutationFn: recipesApi.recognize,
@@ -30,10 +47,16 @@ export function ScanPage() {
 
       navigate({ to: recipesListRoute.to });
     },
-    onError: (error) => {
-      console.error("Ошибка загрузки:", error);
-    },
   });
+
+  const handleRecognize = async ({ file }: { file: File | null }) => {
+    if (!file) return;
+    try {
+      await recognizeMutation.mutateAsync(file);
+    } catch (error) {
+      setApiFormErrors(error, setError, ["file"], "Не удалось распознать продукты. Попробуйте загрузить фото ещё раз.");
+    }
+  };
 
   const lastIngredientsNotFound = lastIngredients.length == 0;
 
@@ -41,16 +64,12 @@ export function ScanPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = "";
-    if (recognizeMutation.isPending) return;
+    if (isSubmitting) return;
 
     recognizeMutation.reset();
-    if (file.size > MAX_PHOTO_SIZE) {
-      setFileError("Размер изображения не должен превышать 10 МБ. Выберите файл меньшего размера.");
-      return;
-    }
-
-    setFileError(null);
-    recognizeMutation.mutate(file);
+    clearErrors();
+    fileField.onChange(file);
+    void handleSubmit(handleRecognize)();
   };
 
   return (
@@ -70,7 +89,9 @@ export function ScanPage() {
 
         <input
           type="file"
-          ref={fileInputRef}
+          name={fileField.name}
+          ref={(element) => { fileField.ref(element); fileInputRef.current = element; }}
+          onBlur={fileField.onBlur}
           accept="image/*"
           onChange={handleFileChange}
           className="hidden"
@@ -78,7 +99,7 @@ export function ScanPage() {
 
         <div className="grid grid-cols-1 gap-6 items-start lg:grid-cols-2 lg:gap-8">
           <div className="flex flex-col gap-4">
-            <button className="w-full rounded-2xl h-[300px] border-primary border-[2px] border-dashed bg-card flex flex-col items-center justify-center gap-5 transition-all hover:opacity-90 active:scale-[0.99]">
+            <button type="button" className="w-full rounded-2xl h-[300px] border-primary border-[2px] border-dashed bg-card flex flex-col items-center justify-center gap-5 transition-all hover:opacity-90 active:scale-[0.99]">
               <div className="w-20 h-20 rounded-full flex items-center justify-center bg-secondary">
                 <Camera size={34} className="text-primary" />
               </div>
@@ -97,22 +118,18 @@ export function ScanPage() {
               <div className="flex-1 h-px bg-border" />
             </div>
 
-            {/* <button className="bg-secondary text-foreground w-full py-4 rounded-xl flex items-center justify-center gap-2.5 transition-all hover:opacity-90 active:scale-[0.99]">
-              <Upload size={18} />
-              <span>Загрузите изображение</span>
-            </button> */}
             <button
               type="button"
-              disabled={recognizeMutation.isPending}
+              disabled={isSubmitting}
               onClick={() => fileInputRef.current?.click()}
               className={cn(
                 "bg-secondary text-foreground w-full py-4 rounded-xl flex items-center justify-center gap-2.5 transition-all",
-                recognizeMutation.isPending
+                isSubmitting
                   ? "opacity-60 cursor-not-allowed"
                   : "hover:opacity-90 active:scale-[0.99]",
               )}
             >
-              {recognizeMutation.isPending ? (
+              {isSubmitting ? (
                 <>
                   <Loader2 size={18} className="animate-spin" />
                   <span>Загрузка...</span>
@@ -127,11 +144,8 @@ export function ScanPage() {
 
             <Hint text="Максимальный размер изображения — 10 МБ" className="text-center" />
 
-            {(fileError || recognizeMutation.isError) && (
-              <p role="alert" className="text-sm text-destructive">
-                {fileError ?? "Не удалось распознать продукты. Попробуйте загрузить фото ещё раз."}
-              </p>
-            )}
+            <FormError message={errors.file?.message} />
+            <FormError message={errors.root?.server?.message} />
 
             <Hint
               text="Расположите продукты на столе для лучшей работы программы"
@@ -152,10 +166,18 @@ export function ScanPage() {
             </div>
 
             <div className="flex flex-wrap gap-2 mb-6">
+              {historyError && (
+                <div className="w-full space-y-2">
+                  <FormError message={historyError} />
+                  <button type="button" disabled={isInitializing} className="text-sm text-primary" onClick={() => void initIngredients()}>
+                    Повторить загрузку истории
+                  </button>
+                </div>
+              )}
               {lastIngredients.map((ing) => (
                 <Ingredient title={ing} key={ing} />
               ))}
-              {lastIngredients.length == 0 && (
+              {lastIngredients.length == 0 && !historyError && (
                 <div className="flex justify-center items-center flex-col gap-4">
                   <div className="w-20 h-20 rounded-full flex items-center justify-center bg-secondary">
                     <CircleX size={34} className="text-primary" />

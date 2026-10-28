@@ -1,32 +1,28 @@
 import { safeReturnTo } from "@/lib/session";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { Route as registerRoute } from "@/routes/auth/register";
-import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { authApi } from "@/api/auth/api";
 import Button from "@/components/ui/Button";
 import { useAuthStore } from "@/store/auth";
-import Hint from "@/components/ui/Hint";
+import AuthFields, { type AuthValues } from "@/components/auth/AuthFields";
+import { setApiFormErrors } from "@/lib/form-errors";
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const { returnTo } = useSearch({ from: "/auth/login" });
-  const [data, setData] = useState<{ email: string; password: string }>({
-    email: "",
-    password: "",
+  const form = useForm<AuthValues>({
+    defaultValues: { email: "", password: "" },
   });
-  const [isError, setIsError] = useState(false);
+  const { handleSubmit, setError, formState: { isSubmitting } } = form;
 
-  const handleLogin = async () => {
-    if (data.email.trim().length == 0 || data.password.length == 0) {
-      setIsError(true);
-      return;
-    }
+  const handleLogin = async (data: AuthValues) => {
     try {
-      const result = await authApi.login(data.email.trim(), data.password);
+      const result = await authApi.login(data.email, data.password);
       useAuthStore.getState().setAccessToken(result.token);
       navigate({ href: safeReturnTo(returnTo) });
-    } catch {
-      setIsError(true);
+    } catch (error) {
+      setApiFormErrors(error, setError, ["email", "password"], "Не удалось войти. Попробуйте снова.");
     }
   };
 
@@ -36,45 +32,12 @@ const LoginPage = () => {
         <h1>Вход</h1>
 
         <form
+          noValidate
           className="flex flex-col gap-4 w-full"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void handleLogin();
-          }}
+          onSubmit={handleSubmit(handleLogin)}
         >
-          <input
-            type="text"
-            className="border-custom border-b"
-            name="email"
-            aria-label="Электронная почта"
-            autoComplete="email"
-            placeholder="Электронная почта"
-            value={data.email}
-            onChange={(e) => {
-              setIsError(false);
-              setData((d) => ({ ...d, email: e.target.value }));
-            }}
-          />
-          <input
-            type="password"
-            name="password"
-            aria-label="Пароль"
-            autoComplete="current-password"
-            placeholder="Пароль"
-            className="border-custom border-b"
-            value={data.password}
-            onChange={(e) => {
-              setIsError(false);
-              setData((d) => ({ ...d, password: e.target.value }));
-            }}
-          />
-          {isError && (
-            <Hint
-              text="Неверное имя пользователя или пароль"
-              className="text-[#a60c25]!"
-            />
-          )}
-          <Button type="submit" text="Войти" />
+          <AuthFields form={form} />
+          <Button type="submit" text="Войти" disabled={isSubmitting} />
         </form>
         <div>
           <span>Нет аккаунта? </span>

@@ -1,6 +1,7 @@
 import ResponsiveSidebar from "@/components/ui/ResponsiveSidebar";
 import { normalizeIngredient } from "@/lib/ingredients";
 import { recipesApi } from "@/api/recipes/api";
+import { getApiError } from "@/api/errors";
 import RecipeAccordionItem from "@/components/recipes/RecipeAccordionItem";
 import Hint from "@/components/ui/Hint";
 import Ingredient from "@/components/ui/Ingredient";
@@ -8,7 +9,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { CircleX, ScanLine, Sparkles, SlidersHorizontal } from "lucide-react";
 import { Route as ScanRoute } from "@/routes/index";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import FormError from "@/components/ui/FormError";
 import Button from "@/components/ui/Button";
 import { useIngredientsStore } from "@/store/ingredients";
 
@@ -35,6 +38,7 @@ export function RecipesListPage() {
     data: searchResult,
     isError: isSearchError,
     isPending: isSearchPending,
+    error: searchError,
     refetch,
   } = useQuery({
     queryKey,
@@ -50,21 +54,20 @@ export function RecipesListPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
 
-  const ingredientInputRef = useRef<HTMLInputElement>(null);
-  const [ingToAdd, setIngToAdd] = useState("");
+  const { register, handleSubmit, reset, setFocus, formState: { errors } } = useForm<{ ingredient: string }>({
+    defaultValues: { ingredient: "" },
+  });
   const [showIngForm, setShowIngForm] = useState(false);
 
-  const handleAddIngredient = () => {
-    const ingredient = normalizeIngredient(ingToAdd);
-    if (!ingredient) return;
+  const handleAddIngredient = ({ ingredient }: { ingredient: string }) => {
     handleIngredientChange([...currentIngredients, ingredient]);
     setShowIngForm(false);
-    setIngToAdd("");
+    reset();
   };
 
   const handleCancelAddIngredient = () => {
     setShowIngForm(false);
-    setIngToAdd("");
+    reset();
   };
 
   const handleDeleteIngredient = (ing: string) => {
@@ -120,7 +123,7 @@ export function RecipesListPage() {
               className="text-xs!"
               onClick={() => {
                 setShowIngForm(true);
-                ingredientInputRef.current?.focus();
+                if (showIngForm) setFocus("ingredient");
               }}
             />
             {currentIngredients.map((ing) => (
@@ -135,23 +138,24 @@ export function RecipesListPage() {
           </div>
           {showIngForm && (
             <form
+              noValidate
               className="flex flex-col gap-4"
-              onSubmit={(event) => {
-                event.preventDefault();
-                handleAddIngredient();
-              }}
+              onSubmit={handleSubmit(handleAddIngredient)}
             >
               <input
-                ref={ingredientInputRef}
                 autoFocus
                 type="text"
                 className="min-w-0 w-full border-b border-custom"
-                value={ingToAdd}
-                onChange={(e) => setIngToAdd(e.target.value)}
+                {...register("ingredient", {
+                  setValueAs: normalizeIngredient,
+                  required: "Введите ингредиент",
+                })}
+                aria-invalid={!!errors.ingredient}
+                aria-describedby={errors.ingredient ? "ingredient-error" : undefined}
                 aria-label="Новый ингредиент"
-                name="ingredient"
                 placeholder="Введите ингредиент"
               />
+              <FormError id="ingredient-error" message={errors.ingredient?.message} />
               <div className="flex flex-row gap-4 justify-between">
                 <Button
                   text="Добавить"
@@ -195,7 +199,7 @@ export function RecipesListPage() {
           )}
           {isRecipesError && (
             <div role="alert" className="py-8">
-              <p className="mb-4">Не удалось загрузить рецепты.</p>
+              <p className="mb-4">{getApiError(searchError, "Не удалось загрузить рецепты.").message}</p>
               <Button
                 text="Повторить поиск"
                 onClick={() => {

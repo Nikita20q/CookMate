@@ -2,12 +2,15 @@ import { normalizeIngredients } from "@/lib/ingredients";
 import { create } from "zustand";
 import type { RecognizeResponse } from "@/api/recipes/types";
 import { recipesApi } from "@/api/recipes/api";
+import { getApiError } from "@/api/errors";
 
 interface IngredientsState {
   currentIngredients: string[];
   recognitionResult: RecognizeResponse | null;
   setRecognitionResult: (result: RecognizeResponse) => void;
   isInitialized: boolean;
+  isInitializing: boolean;
+  historyError: string | null;
   setCurrentIngredients: (ingredients: string[]) => void;
   clearIngredients: () => void;
   initIngredients: () => Promise<void>;
@@ -17,6 +20,8 @@ export const useIngredientsStore = create<IngredientsState>((set, get) => ({
   currentIngredients: [],
   recognitionResult: null,
   isInitialized: false,
+  isInitializing: false,
+  historyError: null,
 
   setCurrentIngredients: (ingredients) =>
     set((state) => {
@@ -29,6 +34,7 @@ export const useIngredientsStore = create<IngredientsState>((set, get) => ({
         currentIngredients: normalized,
         recognitionResult: null,
         isInitialized: true,
+        historyError: null,
       };
     }),
 
@@ -37,18 +43,20 @@ export const useIngredientsStore = create<IngredientsState>((set, get) => ({
       currentIngredients: normalizeIngredients(result.recognizedIngredients),
       recognitionResult: result,
       isInitialized: true,
+      historyError: null,
     }),
 
   clearIngredients: () =>
-    set({ currentIngredients: [], recognitionResult: null, isInitialized: true }),
+    set({ currentIngredients: [], recognitionResult: null, isInitialized: true, historyError: null }),
 
   initIngredients: async () => {
-    if (get().isInitialized) return;
+    if (get().isInitializing || (get().isInitialized && !get().historyError)) return;
+    set({ isInitializing: true, isInitialized: false, historyError: null });
 
     try {
       const history = await recipesApi.getSearchHistory();
 
-      // A completed scan or manual edit takes precedence over startup history.
+      // Ручные изменения важнее загруженной истории.
       if (get().isInitialized) return;
 
       if (history && history.length > 0) {
@@ -59,10 +67,11 @@ export const useIngredientsStore = create<IngredientsState>((set, get) => ({
         set({ currentIngredients: [] });
       }
     } catch (error) {
-      console.error("Возникла ошибка:", error);
-      if (!get().isInitialized) set({ currentIngredients: [] });
+      if (!get().isInitialized) set({
+        historyError: getApiError(error, "Не удалось загрузить историю сканирования.").message,
+      });
     } finally {
-      set({ isInitialized: true });
+      set({ isInitialized: true, isInitializing: false });
     }
   },
 }));
