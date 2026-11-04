@@ -111,12 +111,12 @@ public class S3Service {
             return null;
         }
 
-        if (s3Client == null) {
-            log.error("S3 клиент не инициализирован! Картинка НЕ будет загружена.");
-            return null;
-        }
-
         String normalizedUrl = normalizeUrl(imageUrl);
+
+        if (s3Client == null) {
+            log.info("S3 отключён: сохраняем исходную ссылку картинки рецепта {}", recipeSlug);
+            return normalizedUrl;
+        }
 
         log.info("Рецепт {}: оригинальный URL → {}", recipeSlug, imageUrl);
         log.info("Рецепт {}: нормализованный URL → {}", recipeSlug, normalizedUrl);
@@ -146,12 +146,13 @@ public class S3Service {
             return null;
         }
 
-        if (s3Client == null) {
-            log.error("S3 клиент не инициализирован! Картинка шага НЕ будет загружена.");
-            return null;
-        }
-
         String normalizedUrl = normalizeUrl(imageUrl);
+
+        if (s3Client == null) {
+            log.info("S3 отключён: сохраняем исходную ссылку картинки шага {} рецепта {}",
+                    stepNumber, recipeSlug);
+            return normalizedUrl;
+        }
 
         log.info("Шаг {} для {}: нормализованный URL → {}", stepNumber, recipeSlug, normalizedUrl);
 
