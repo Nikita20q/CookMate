@@ -1,13 +1,34 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Depends
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from ultralytics import YOLO
-import cv2
 import os
-import numpy as np
 from typing import List, Dict
-import torch
+from validation import MAX_FILE_BYTES, ValidationError, ValidatedImage, validate_image
+from request_limits import RequestSizeLimit
 
 app = FastAPI(title="CookMate Food Detector")
+app.add_middleware(RequestSizeLimit)
+
+
+@app.exception_handler(ValidationError)
+async def validation_error_handler(request, exc):
+    return JSONResponse(status_code=exc.status_code, content={"detail": str(exc)})
+
+
+@app.exception_handler(RequestValidationError)
+async def request_error_handler(request, exc):
+    # FastAPI's default response can echo untrusted input.
+    return JSONResponse(status_code=422, content={"detail": "Ожидается один файл в поле file"})
+
+
+async def validated_upload(request: Request, file: UploadFile = File(...)) -> ValidatedImage:
+    form = await request.form()
+    if len(form.multi_items()) != 1 or set(form) != {"file"}:
+        raise ValidationError("Ожидается только одно поле file")
+    # Filename and declared MIME type are untrusted metadata, never paths or commands.
+    return validate_image(await file.read(MAX_FILE_BYTES + 1))
+
 
 MODEL_DIR = os.getenv("MODEL_DIR", "./models")
 MODEL_NANO_PATH = os.path.join(MODEL_DIR, "yolo11n_best.pt")
@@ -83,16 +104,12 @@ def merge_detections(small_dets: List[Dict], nano_dets: List[Dict]) -> List[Dict
 
 
 @app.post("/predict")
-async def predict(file: UploadFile = File(...)):
+async def predict(image: ValidatedImage = Depends(validated_upload)):
     """Основной endpoint — ансамбль двух моделей"""
     try:
-        contents = await file.read()
-        img = cv2.imdecode(np.frombuffer(contents, np.uint8), cv2.IMREAD_COLOR)
+        img = image.pixels
 
-        if img is None:
-            raise HTTPException(status_code=400, detail="Не удалось прочитать изображение")
-
-        # запускаем обе модели (параллельно)
+        # Запускаем обе модели последовательно.
         small_dets = run_prediction(model_small, img, CONF_SMALL)
         nano_dets = run_prediction(model_nano, img, CONF_NANO)
 
@@ -112,26 +129,28 @@ async def predict(file: UploadFile = File(...)):
             }
         }
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=500, detail="Ошибка распознавания изображения") from None
+
+
+def single_prediction(model, image, confidence):
+    try:
+        dets = run_prediction(model, image.pixels, confidence)
+        return {"detections": dets, "count": len(dets)}
+    except Exception:
+        raise HTTPException(status_code=500, detail="Ошибка распознавания изображения") from None
 
 
 @app.post("/predict/small_only")
-async def predict_small(file: UploadFile = File(...)):
-    """Только small модель (для сравнения)"""
-    contents = await file.read()
-    img = cv2.imdecode(np.frombuffer(contents, np.uint8), cv2.IMREAD_COLOR)
-    dets = run_prediction(model_small, img, CONF_SMALL)
-    return {"detections": dets, "count": len(dets)}
+async def predict_small(image: ValidatedImage = Depends(validated_upload)):
+    """Только small модель (для сравнения)."""
+    return single_prediction(model_small, image, CONF_SMALL)
 
 
 @app.post("/predict/nano_only")
-async def predict_nano(file: UploadFile = File(...)):
-    """Только nano модель (для сравнения)"""
-    contents = await file.read()
-    img = cv2.imdecode(np.frombuffer(contents, np.uint8), cv2.IMREAD_COLOR)
-    dets = run_prediction(model_nano, img, CONF_NANO)
-    return {"detections": dets, "count": len(dets)}
+async def predict_nano(image: ValidatedImage = Depends(validated_upload)):
+    """Только nano модель (для сравнения)."""
+    return single_prediction(model_nano, image, CONF_NANO)
 
 
 @app.get("/health")

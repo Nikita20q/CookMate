@@ -1,0 +1,6 @@
+services:
+  detection-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    # No models, GPU, database, secrets or backend needed.

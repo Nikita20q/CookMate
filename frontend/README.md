@@ -1,73 +1,69 @@
-# React + TypeScript + Vite
+# CookMate Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Стек: React, TypeScript, Vite, React Hook Form, TanStack Router/Query, Zustand, Tailwind CSS.
 
-Currently, two official plugins are available:
+## Локальная разработка
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Используйте Node.js 24 и npm 11.19.1 (как в закреплённом Docker-образе). Из корня монорепозитория:
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```sh
+cd frontend
+npm ci
+cp .env.example .env
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```sh
+npm run build
+npm run lint
+npm run preview
 ```
+
+## Docker
+
+Из корня монорепозитория:
+
+```sh
+docker compose up --build frontend
+```
+
+Фронтенд доступен на порту 3000. По умолчанию nginx контейнера проксирует `/api` на `backend:8080` в сети корневого compose. Для сборки с явным адресом API:
+
+```sh
+docker compose build --build-arg VITE_API_BASE_URL=https://api.example.com/api/v1 frontend
+docker compose up -d frontend
+```
+
+Адрес API задаётся при сборке; для его изменения нужен новый образ. Локальный `.env` не включается в Docker-контекст. `frontend/docker-compose.yml` запускает только фронтенд. Для работы API в таком режиме нужен доступный сервис `backend` в сети контейнера либо явно заданный при сборке адрес API; при отдельном origin настройте CORS backend.
+
+## Тестирование
+
+```sh
+npm test
+npm run test:watch
+npm run test:coverage
+npm run test:typecheck
+```
+
+Тесты Vitest находятся в `src/__tests__/`, используют jsdom и React Testing Library. Проверяются авторизация и регистрация, история ингредиентов, API-контракты, загрузка фотографий, подбор и детали рецептов, избранное, навигация и переключение адаптивных панелей. Страничные тесты используют настоящие роуты и QueryClient, сетевые обращения заменены имитациями API. Backend и ML для запуска не нужны.
+
+## Формы и ошибки API
+
+Вход, регистрация, подтверждение почты, добавление ингредиента и загрузка фото используют React Hook Form. Клиентская валидация задаётся через `register`, `Controller` или `useController`; ошибки выводятся компонентом `FormError` из `formState.errors`.
+
+В обработчике неуспешного запроса вызывайте `setApiFormErrors` из `src/lib/form-errors.ts`, передавая исключение, `setError` и список полей формы:
+
+```tsx
+try {
+  await authApi.login(data.email, data.password);
+} catch (error) {
+  setApiFormErrors(error, setError, ["email", "password"]);
+}
+```
+
+Ошибки известных полей попадают в `errors.email`, `errors.password` и другие зарегистрированные поля. Общие сообщения и ошибки неизвестных полей доступны в `errors.root.server.message`. Текущий backend возвращает бизнес-ошибки и валидацию в `message`, поэтому такие сообщения отображаются на уровне формы. Ответы с `errors` или `fieldErrors` поддерживают привязку к полям без изменений форм.
+
+Для запросов вне форм используйте `getApiError` из `src/api/errors.ts`. Он возвращает `message`, `fieldErrors` и HTTP-статус, разбирает текст, `message`, `detail`, вложенный `error`, списки сообщений и ошибки полей. При отсутствии сообщения используются понятные тексты для сетевых ошибок, таймаутов и HTTP-статусов; HTML-страницы ошибок пользователю не выводятся. Исходное исключение Axios сохраняется для существующей обработки сессии.
+
+Пока запрос формы выполняется, отправка заблокирована. При изменении поля сбрасывается его серверная ошибка и общая ошибка формы. Подтверждение почты использует адрес, с которым успешно прошла регистрация.

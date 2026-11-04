@@ -76,6 +76,13 @@ services:
       ml-service:
         condition: service_healthy
 
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/api/v1/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
   gateway:
     build: ./Gateway
     container_name: cookmate-gateway
