@@ -5,9 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b39328fe-4654-477b-b837-b08a2c52f1e6" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gateway/settings.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/../Gateway/settings.gradle.kts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/smartfridge/parser/services/S3Service.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/services/S3Service.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/settings.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/settings.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/settings.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/settings.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../detection_service/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/../detection_service/Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../detection_service/Dockerfile.gpu" beforeDir="false" afterPath="$PROJECT_DIR$/../detection_service/Dockerfile.gpu" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../detection_service/Dockerfile.test" beforeDir="false" afterPath="$PROJECT_DIR$/../detection_service/Dockerfile.test" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -77,7 +81,7 @@
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
     "Spring Boot.ParserApplication.executor": "Run",
-    "git-widget-placeholder": "Backend",
+    "git-widget-placeholder": "main",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "/home/nikita/MyProjects/MGTU/CookMate/Parser",
     "node.js.detected.package.eslint": "true",
