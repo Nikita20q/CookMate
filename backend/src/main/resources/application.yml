@@ -11,6 +11,10 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
 
+  sql:
+    init:
+      mode: never
+
   flyway:
     enabled: true
     locations: classpath:db/migration

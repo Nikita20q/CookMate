@@ -5,14 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b39328fe-4654-477b-b837-b08a2c52f1e6" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/config/S3Config.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/services/S3Service.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/smartfridge/parser/services/ParserService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/services/ParserService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/application.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/config/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/smartfridge/config/SecurityConfig.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/../docker-compose.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/smartfridge/parser/services/S3Service.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/smartfridge/parser/services/S3Service.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -82,9 +77,9 @@
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
     "Spring Boot.ParserApplication.executor": "Run",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "Backend",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "/home/nikita/MyProjects/MGTU/CookMateBackend/backend",
+    "last_opened_file_path": "/home/nikita/MyProjects/MGTU/CookMate/Parser",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -107,7 +102,7 @@
       <method v="2" />
     </configuration>
     <configuration name="ParserApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
-      <module name="CookMateBackend.main" />
+      <module name="org.example.CookMateBackend.main" />
       <option name="SPRING_BOOT_MAIN_CLASS" value="smartfridge.parser.ParserApplication" />
       <method v="2">
         <option name="Make" enabled="true" />
@@ -127,6 +122,7 @@
       <workItem from="1782230620299" duration="334000" />
       <workItem from="1782230967060" duration="7136000" />
       <workItem from="1782240337295" duration="5000" />
+      <workItem from="1793819472699" duration="1366000" />
     </task>
     <servers />
   </component>
