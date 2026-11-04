@@ -24,8 +24,7 @@ public class FavoriteController {
     @GetMapping
     @Operation(summary = "Получить список избранных рецептов")
     public RecipeSearchResponse getFavorites(
-            @Parameter(description = "ID пользователя (из JWT)")
-            @CurrentUserId Long userId) {
+            @Parameter(hidden = true) @CurrentUserId Long userId) {
 
         List<Recipe> recipes = favoriteService.getUserFavorites(userId);
 
@@ -38,7 +37,7 @@ public class FavoriteController {
     @PostMapping("/{recipeId}")
     @Operation(summary = "Добавить рецепт в избранное")
     public ResponseEntity<Void> addFavorite(
-            @CurrentUserId Long userId,
+            @Parameter(hidden = true) @CurrentUserId Long userId,
             @PathVariable Long recipeId) {
 
         favoriteService.addFavorite(userId, recipeId);
@@ -48,7 +47,7 @@ public class FavoriteController {
     @DeleteMapping("/{recipeId}")
     @Operation(summary = "Удалить рецепт из избранного")
     public ResponseEntity<Void> removeFavorite(
-            @CurrentUserId Long userId,
+            @Parameter(hidden = true) @CurrentUserId Long userId,
             @PathVariable Long recipeId) {
 
         favoriteService.removeFavorite(userId, recipeId);

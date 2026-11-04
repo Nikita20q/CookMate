@@ -1,6 +1,7 @@
 package smartfridge.security.resolver;
 
 import org.springframework.core.MethodParameter;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -9,6 +10,7 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 import smartfridge.security.annotation.CurrentUserId;
+import smartfridge.exceptions.BusinessException;
 
 @Component
 public class CurrentUserIdResolver implements HandlerMethodArgumentResolver {
@@ -21,21 +23,21 @@ public class CurrentUserIdResolver implements HandlerMethodArgumentResolver {
 
     @Override
     public Object resolveArgument(MethodParameter parameter,
-                                  ModelAndViewContainer mavContainer,
-                                  NativeWebRequest webRequest,
-                                  WebDataBinderFactory binderFactory) {
+            ModelAndViewContainer mavContainer,
+            NativeWebRequest webRequest,
+            WebDataBinderFactory binderFactory) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()
                 && !"anonymousUser".equals(authentication.getPrincipal())) {
-            return Long.parseLong(authentication.getPrincipal().toString());
+            try {
+                return Long.parseLong(authentication.getPrincipal().toString());
+            } catch (NumberFormatException ignored) {
+                // A user ID must come from the authenticated JWT principal.
+            }
         }
 
-        String userIdHeader = webRequest.getHeader("X-User-Id");
-        if (userIdHeader != null && !userIdHeader.isEmpty()) {
-            return Long.parseLong(userIdHeader);
-        }
-
-        return null;
+        throw new BusinessException("Требуется авторизация",
+                "Для доступа к этому ресурсу необходимо войти в систему", HttpStatus.UNAUTHORIZED);
     }
 }
