@@ -66,8 +66,7 @@ export function getApiError(error: unknown, fallback = "Произошла ош�
   }
 
   if (!message && axiosError) {
-    if (error.code === "ERR_SESSION_EXPIRED") message = "Сессия истекла. Войдите снова.";
-    else if (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT") {
+    if (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT") {
       message = "Сервер не ответил вовремя. Попробуйте снова.";
     } else if (!error.response) message = "Не удалось связаться с сервером. Проверьте подключение.";
     else if (status === 401) message = "Необходим вход в аккаунт.";

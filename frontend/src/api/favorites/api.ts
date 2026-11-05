@@ -4,19 +4,15 @@ import type { GetFavoritesResponse } from "./types";
 import type { Recipe } from "@/types/recipes";
 
 export const favoritesApi = {
-  getAll: (userId: string): Promise<GetFavoritesResponse> => {
-    return apiClient.get(FAVORITES_ENDPOINTS.getAll, { params: { userId } });
+  getAll: (): Promise<GetFavoritesResponse> => {
+    return apiClient.get(FAVORITES_ENDPOINTS.getAll);
   },
 
-  add: (userId: string, recipeId: Recipe["id"]): Promise<void> => {
-    return apiClient.post(`${FAVORITES_ENDPOINTS.add}/${recipeId}`, undefined, {
-      params: { userId },
-    });
+  add: (recipeId: Recipe["id"]): Promise<void> => {
+    return apiClient.post(`${FAVORITES_ENDPOINTS.add}/${recipeId}`);
   },
 
-  remove: (userId: string, recipeId: Recipe["id"]): Promise<void> => {
-    return apiClient.delete(`${FAVORITES_ENDPOINTS.remove}/${recipeId}`, {
-      params: { userId },
-    });
+  remove: (recipeId: Recipe["id"]): Promise<void> => {
+    return apiClient.delete(`${FAVORITES_ENDPOINTS.remove}/${recipeId}`);
   },
 };
