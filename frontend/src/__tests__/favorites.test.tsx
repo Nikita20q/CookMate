@@ -72,7 +72,7 @@ describe("Страница избранного", () => {
       recipeNumber: saved.length,
       recipes: saved,
     }));
-    vi.mocked(favoritesApi.remove).mockImplementation(async (_userId, id) => {
+    vi.mocked(favoritesApi.remove).mockImplementation(async (id) => {
       saved = saved.filter((item) => item.id !== id);
     });
     const { user } = await renderApp("/favorites");
@@ -86,7 +86,7 @@ describe("Страница избранного", () => {
     );
     expect(screen.getByText(secondRecipe.title)).toBeVisible();
     expect(screen.getByText("Сохранено: 1")).toBeVisible();
-    expect(favoritesApi.remove).toHaveBeenCalledWith("1", recipe.id);
+    expect(favoritesApi.remove).toHaveBeenCalledWith(recipe.id);
   });
 
   it("сохраняет карточку при ошибке удаления и предлагает повторить", async () => {
@@ -152,16 +152,16 @@ describe("Страница избранного", () => {
 
   it("не показывает коллекцию предыдущего пользователя после смены аккаунта", async () => {
     useAuthStore.getState().setAccessToken(token("1"));
-    vi.mocked(favoritesApi.getAll).mockImplementation(async (id) => ({
+    vi.mocked(favoritesApi.getAll).mockImplementation(async () => ({
       recipeNumber: 1,
-      recipes: [id === "1" ? recipe : secondRecipe],
+      recipes: [useAuthStore.getState().accessToken === token("1") ? recipe : secondRecipe],
     }));
     await renderApp("/favorites");
     await screen.findByText(recipe.title);
     await act(async () => useAuthStore.getState().setAccessToken(token("2")));
     expect(await screen.findByText(secondRecipe.title)).toBeVisible();
     expect(screen.queryByText(recipe.title)).not.toBeInTheDocument();
-    expect(favoritesApi.getAll).toHaveBeenCalledWith("2");
+    expect(favoritesApi.getAll).toHaveBeenLastCalledWith();
   });
 });
 
@@ -193,7 +193,7 @@ describe("Лайки в списке рецептов", () => {
     const save = await screen.findByRole("button", { name: "Сохранить рецепт" });
     await waitFor(() => expect(save).toBeEnabled());
     await user.click(save);
-    await waitFor(() => expect(favoritesApi.add).toHaveBeenCalledWith("1", recipe.id));
+    await waitFor(() => expect(favoritesApi.add).toHaveBeenCalledWith(recipe.id));
   });
 
   it("добавляет рецепт одним запросом и синхронизирует страницу избранного", async () => {

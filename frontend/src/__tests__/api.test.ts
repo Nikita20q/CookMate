@@ -32,7 +32,7 @@ afterEach(() => {
 describe("Запросы к API", () => {
   it("передаёт Bearer-токен авторизованного пользователя", async () => {
     useAuthStore.getState().setAccessToken(token());
-    await favoritesApi.getAll("1");
+    await favoritesApi.getAll();
     expect(requests[0].headers.Authorization).toBe(`Bearer ${token()}`);
   });
 
@@ -80,27 +80,34 @@ describe("Запросы к API", () => {
   });
 
   it("получает, добавляет и удаляет избранное по контракту Swagger", async () => {
-    const response = await favoritesApi.getAll("1");
-    await favoritesApi.add("1", 42);
-    await favoritesApi.remove("1", 42);
+    const response = await favoritesApi.getAll();
+    await favoritesApi.add(42);
+    await favoritesApi.remove(42);
     expect(response).toEqual({ recipeNumber: 1, recipes: [recipe] });
     expect(
       requests.map((request) => [request.method, request.url, request.params]),
     ).toEqual([
-      ["get", "/favorites", { userId: "1" }],
-      ["post", "/favorites/42", { userId: "1" }],
-      ["delete", "/favorites/42", { userId: "1" }],
+      ["get", "/favorites", undefined],
+      ["post", "/favorites/42", undefined],
+      ["delete", "/favorites/42", undefined],
     ]);
   });
 
-  it("не отправляет запрос с истёкшим токеном и завершает сессию", async () => {
-    vi.useFakeTimers();
-    const exp = Math.floor(Date.now() / 1000) + 5;
-    useAuthStore.getState().setAccessToken(token("1", exp));
-    vi.setSystemTime(exp * 1000);
-    await expect(favoritesApi.add("1", 42)).rejects.toMatchObject({ code: "ERR_SESSION_EXPIRED" });
-    expect(requests).toHaveLength(0);
+  it("передаёт истёкший токен серверу и завершает сессию после 401", async () => {
+    const expiredToken = token("1", 1);
+    useAuthStore.getState().setAccessToken(expiredToken);
+    apiClient.defaults.adapter = async (config) => {
+      requests.push(config);
+      throw new AxiosError("Unauthorized", "ERR_BAD_REQUEST", config, undefined,
+        { status: 401, statusText: "Unauthorized", data: {}, headers: {}, config });
+    };
+    expect(useAuthStore.getState().status).toBe("authenticated");
+    await expect(favoritesApi.add(42)).rejects.toMatchObject({ response: { status: 401 } });
+    expect(requests).toHaveLength(1);
+    expect(requests[0].headers.Authorization).toBe(`Bearer ${expiredToken}`);
     expect(useAuthStore.getState().status).toBe("expired");
+    expect(useAuthStore.getState().accessToken).toBeNull();
+    expect(JSON.parse(localStorage.getItem("auth-storage")!).state.accessToken).toBeNull();
   });
 
   it.each([401, 403, 500])("обрабатывает HTTP %s централизованно", async (status) => {
@@ -110,7 +117,7 @@ describe("Запросы к API", () => {
         { status, statusText: "Error", data: {}, headers: {}, config });
       throw rejected;
     };
-    await expect(favoritesApi.add("1", 42)).rejects.toMatchObject({ response: { status } });
+    await expect(favoritesApi.add(42)).rejects.toMatchObject({ response: { status } });
     expect(useAuthStore.getState().status).toBe(status === 401 ? "expired" : "authenticated");
     expect(useAuthStore.getState().accessToken).toBe(status === 401 ? null : token());
   });
@@ -122,8 +129,8 @@ describe("Запросы к API", () => {
       throw new AxiosError("Old session", "ERR_BAD_REQUEST", config, undefined,
         { status: 401, statusText: "Unauthorized", data: {}, headers: {}, config });
     };
-    await expect(favoritesApi.getAll("1")).rejects.toBeInstanceOf(AxiosError);
-    expect(useAuthStore.getState().getUserId()).toBe("2");
+    await expect(favoritesApi.getAll()).rejects.toBeInstanceOf(AxiosError);
+    expect(useAuthStore.getState().accessToken).toBe(token("2"));
   });
 
   it("401 при входе не сбрасывает сессию и не добавляет Bearer", async () => {

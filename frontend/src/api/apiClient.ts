@@ -1,6 +1,5 @@
 import { getAccessToken, useAuthStore } from "@/store/auth";
-import axios, { AxiosError } from "axios";
-import { isSessionValid } from "@/lib/session";
+import axios from "axios";
 import { AUTH_ENDPOINTS } from "@/api/auth/endpoints";
 
 const authEndpoints: readonly string[] = Object.values(AUTH_ENDPOINTS);
@@ -15,11 +14,6 @@ apiClient.interceptors.request.use((config) => {
   if (authEndpoints.includes(config.url ?? "")) {
     config.headers.delete("Authorization");
     return config;
-  }
-  const storedToken = useAuthStore.getState().accessToken;
-  if (storedToken && !isSessionValid(storedToken)) {
-    useAuthStore.getState().expireSession(storedToken);
-    throw new AxiosError("Сессия истекла. Войдите снова.", "ERR_SESSION_EXPIRED", config);
   }
   const token = getAccessToken();
   if (token) {

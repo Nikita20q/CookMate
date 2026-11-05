@@ -11,21 +11,18 @@ const linkClass =
   "inline-flex items-center justify-center gap-2 rounded-xl bg-secondary px-5 py-3 text-sm font-semibold transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2";
 
 export default function FavoritesPage() {
-  const userId = useAuthStore((state) => state.getUserId());
+  const accessToken = useAuthStore((state) => state.accessToken);
   const favorites = useQuery({
-    queryKey: ["favorites", userId],
-    queryFn: () => {
-      if (!userId) throw new Error("Необходим вход в аккаунт.");
-      return favoritesApi.getAll(userId);
-    },
-    enabled: userId !== null,
+    queryKey: ["favorites", accessToken],
+    queryFn: () => favoritesApi.getAll(),
+    enabled: accessToken !== null,
     staleTime: 60 * 1000,
     retry: false,
   });
   const currentIngredients = useIngredientsStore(
     (state) => state.currentIngredients,
   );
-  const needsLogin = !userId;
+  const needsLogin = !accessToken;
   const apiError = getApiError(favorites.error, "Проверьте подключение и попробуйте снова.");
   const forbidden = apiError.status === 403;
 
@@ -38,7 +35,7 @@ export default function FavoritesPage() {
             aria-live="polite"
           >
             <Heart size={15} className="text-accent" fill="currentColor" />
-            {userId && favorites.data
+            {accessToken && favorites.data
               ? `Сохранено: ${favorites.data.recipeNumber}`
               : "Ваша коллекция"}
           </p>

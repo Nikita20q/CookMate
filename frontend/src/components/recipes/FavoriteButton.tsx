@@ -23,20 +23,17 @@ export default function FavoriteButton({
   variant = "icon",
   className,
 }: FavoriteButtonProps) {
-  const userId = useAuthStore((state) => state.getUserId());
+  const accessToken = useAuthStore((state) => state.accessToken);
   const navigate = useNavigate();
   const { href } = useLocation();
   const queryClient = useQueryClient();
-  const queryKey = ["favorites", userId];
-  const mutationKey = ["favorite-toggle", userId, String(recipe.id)];
+  const queryKey = ["favorites", accessToken];
+  const mutationKey = ["favorite-toggle", accessToken, String(recipe.id)];
 
   const favorites = useQuery({
     queryKey,
-    queryFn: () => {
-      if (!userId) throw new Error("Необходим вход в аккаунт.");
-      return favoritesApi.getAll(userId);
-    },
-    enabled: userId !== null,
+    queryFn: () => favoritesApi.getAll(),
+    enabled: accessToken !== null,
     staleTime: 60 * 1000,
     retry: false,
   });
@@ -49,11 +46,11 @@ export default function FavoriteButton({
   const mutation = useMutation({
     mutationKey,
     mutationFn: () => {
-      if (!userId) throw new Error("Необходим вход в аккаунт.");
+      if (!accessToken) throw new Error("Необходим вход в аккаунт.");
       if (isFavorite) {
-        return favoritesApi.remove(userId, recipe.id);
+        return favoritesApi.remove(recipe.id);
       }
-      return favoritesApi.add(userId, recipe.id);
+      return favoritesApi.add(recipe.id);
     },
     onSuccess: () => {
       return queryClient.invalidateQueries({ queryKey });
@@ -61,9 +58,9 @@ export default function FavoriteButton({
   });
 
   const pendingMutations = useIsMutating({ mutationKey, exact: true });
-  const loading = !!userId && (favorites.isPending || pendingMutations > 0);
+  const loading = !!accessToken && (favorites.isPending || pendingMutations > 0);
   const error = mutation.error ?? favorites.error;
-  const needsLogin = !userId;
+  const needsLogin = !accessToken;
   const apiError = getApiError(error, "Не удалось изменить избранное.");
   const forbidden = apiError.status === 403;
 
