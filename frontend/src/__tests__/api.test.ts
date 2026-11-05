@@ -66,6 +66,16 @@ describe("Запросы к API", () => {
     });
   });
 
+  it("получает подборку по базовым продуктам без записи в историю", async () => {
+    vi.mocked(recipesApi.getSuggestions).mockRestore();
+    const response = await recipesApi.getSuggestions();
+    expect(requests).toHaveLength(1);
+    expect(requests[0].method).toBe("get");
+    expect(requests[0].url).toBe("/recipes");
+    expect(requests[0].params).toEqual({ components: "соль,сахар,вода,черный перец,мука,сода" });
+    expect(response).toEqual({ recognizedIngredients: [], recipeCount: 1, recipes: [recipe] });
+  });
+
   it("передаёт фотографию как multipart с полем file", async () => {
     const file = new File(["photo"], "fridge.jpg", { type: "image/jpeg" });
     await recipesApi.recognize(file);

@@ -71,7 +71,7 @@ describe("Выезжающие меню", () => {
   it("открывает форму из пустого состояния при скрытой панели", async () => {
     mobileViewport();
     const { user } = await renderApp("/recipes");
-    await user.click(screen.getByRole("button", { name: "Добавить ингредиенты" }));
+    await user.click(await screen.findByRole("button", { name: "Добавить ингредиенты" }));
     const dialog = screen.getByRole("dialog", { name: "Ингредиенты" });
     expect(within(dialog).getByPlaceholderText("Введите ингредиент")).toBeVisible();
   });

@@ -4,7 +4,7 @@ import { act, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { recipesApi } from "@/api/recipes/api";
 import { useIngredientsStore } from "@/store/ingredients";
-import { detail, recipe, token } from "./fixtures";
+import { detail, recipe, secondRecipe, token } from "./fixtures";
 import { deferred, renderApp } from "./helpers";
 import type { RecognizeResponse } from "@/api/recipes/types";
 import type { RecipeDetail } from "@/types/recipes";
@@ -19,13 +19,52 @@ beforeEach(() => {
 });
 
 describe("Подбор рецептов", () => {
-  it("не отправляет поиск без ингредиентов и предлагает добавить их", async () => {
+  it("получает подборку без ингредиентов", async () => {
+    vi.mocked(recipesApi.getSuggestions).mockResolvedValue({
+      recognizedIngredients: [], recipeCount: 1, recipes: [secondRecipe],
+    });
     await renderApp("/recipes");
+    expect(await screen.findByText(secondRecipe.title)).toBeVisible();
+    expect(recipesApi.getSuggestions).toHaveBeenCalledTimes(1);
     expect(recipesApi.findByIngredients).not.toHaveBeenCalled();
-    expect(screen.getByText("Рецепты не найдены")).toBeVisible();
-    expect(
-      screen.getByRole("button", { name: "Добавить ингредиенты" }),
-    ).toBeVisible();
+    expect(useIngredientsStore.getState().currentIngredients).toEqual([]);
+    expect(screen.queryByText("Рецепты не найдены")).not.toBeInTheDocument();
+  });
+
+  it("после удаления последнего ингредиента очищает список и загружает подборку", async () => {
+    useIngredientsStore.getState().setRecognitionResult({
+      recognizedIngredients: ["яйцо"], recipeCount: 1, recipes: [recipe],
+    });
+    const response = deferred<RecognizeResponse>();
+    vi.mocked(recipesApi.getSuggestions).mockReturnValue(response.promise);
+    const { user } = await renderApp("/recipes");
+    await user.click(screen.getByText("яйцо", { selector: "span" }));
+    expect(useIngredientsStore.getState().currentIngredients).toEqual([]);
+    expect(useIngredientsStore.getState().recognitionResult).toBeNull();
+    expect(screen.getByText("0 ингредиентов обнаружено")).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent("Загружаем рецепты");
+    expect(recipesApi.getSuggestions).toHaveBeenCalledTimes(1);
+    await act(async () => response.resolve({
+      recognizedIngredients: [], recipeCount: 1, recipes: [secondRecipe],
+    }));
+    expect(await screen.findByText(secondRecipe.title)).toBeVisible();
+    expect(screen.queryByText(recipe.title)).not.toBeInTheDocument();
+    expect(screen.queryByText("Рецепты не найдены")).not.toBeInTheDocument();
+    expect(useIngredientsStore.getState().currentIngredients).toEqual([]);
+    await user.click(screen.getByText("+"));
+    await user.type(screen.getByLabelText("Новый ингредиент"), "Сыр{Enter}");
+    await waitFor(() => expect(recipesApi.findByIngredients).toHaveBeenCalledWith(["сыр"]));
+  });
+
+  it("при ошибке подборки показывает повтор вместо пустого результата", async () => {
+    vi.mocked(recipesApi.getSuggestions)
+      .mockRejectedValueOnce(new Error("Нет сети"))
+      .mockResolvedValue({ recognizedIngredients: [], recipeCount: 1, recipes: [secondRecipe] });
+    const { user } = await renderApp("/recipes");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Нет сети");
+    expect(screen.queryByText("Рецепты не найдены")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Повторить поиск" }));
+    expect(await screen.findByText(secondRecipe.title)).toBeVisible();
   });
 
   it("показывает загрузку списка", async () => {
