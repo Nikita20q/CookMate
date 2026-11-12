@@ -3,16 +3,21 @@ import { matchRecipe } from "@/lib/ingredients";
 import { recipesApi } from "@/api/recipes/api";
 import { getApiError } from "@/api/errors";
 import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
+import Input from "@/components/ui/Input";
+import Textarea from "@/components/ui/Textarea";
 import { useIngredientsStore } from "@/store/ingredients";
 import cn from "@/utils/classname-func";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLoaderData } from "@tanstack/react-router";
 import { ArrowLeft, Clock, Flame, CheckCircle2, Pencil, X } from "lucide-react";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 import RecipePanels from "@/components/recipes/RecipePanels";
+import RecipeEditActions from "@/components/recipes/RecipeEditActions";
 import FavoriteButton from "@/components/recipes/FavoriteButton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAuthStore } from "@/store/auth";
+import type { RecipeDetail } from "@/types/recipes";
 
 interface Step {
   num: number;
@@ -31,6 +36,7 @@ export function RecipeDetailPage() {
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const accessToken = useAuthStore((state) => state.accessToken);
   const { canManageRecipes } = useCurrentUser();
+  const { register, reset } = useForm<RecipeDetail>();
   const [editingContext, setEditingContext] = useState<{
     recipeSlug: string;
     accessToken: string;
@@ -65,6 +71,11 @@ export function RecipeDetailPage() {
     });
   };
 
+  const cancelEditing = () => {
+    reset();
+    setEditingContext(null);
+  };
+
   if (isPending) {
     return (
       <div
@@ -88,6 +99,7 @@ export function RecipeDetailPage() {
           onClick={() => {
             refetch();
           }}
+          className="w-auto"
         >
           Повторить загрузку
         </Button>
@@ -119,7 +131,13 @@ export function RecipeDetailPage() {
   );
 
   const overview = (
-    <div className="flex min-w-0 flex-col [overflow-wrap:anywhere]">
+    <form
+      aria-label={isEditing ? "Черновик рецепта" : undefined}
+      onSubmit={(event) => event.preventDefault()}
+      className={cn("flex min-w-0 flex-col [overflow-wrap:anywhere]", {
+        "xl:pb-36": isEditing,
+      })}
+    >
       <div className="relative h-56 shrink-0 sm:h-[280px]">
         <ImageWithFallback
           src={recipe.image}
@@ -131,12 +149,27 @@ export function RecipeDetailPage() {
 
       <div>
         <div className="px-7 pt-6 pb-4">
-          <h1 className="font-['Lora',serif] text-[26px] leading-tight font-semibold text-foreground">
-            {recipe.title}
-          </h1>
-          <p className="text-muted-foreground text-sm leading-relaxed mt-3">
-            {content.description || recipe.description}
-          </p>
+          {isEditing ? (
+            <div className="flex flex-col gap-4">
+              <label className="flex flex-col gap-2 text-sm font-medium">
+                Название рецепта
+                <Input {...register("title")} />
+              </label>
+              <label className="flex flex-col gap-2 text-sm font-medium">
+                Описание рецепта
+                <Textarea {...register("description")} rows={5} />
+              </label>
+            </div>
+          ) : (
+            <>
+              <h1 className="font-['Lora',serif] text-[26px] leading-tight font-semibold text-foreground">
+                {recipe.title}
+              </h1>
+              <p className="text-muted-foreground text-sm leading-relaxed mt-3">
+                {content.description || recipe.description}
+              </p>
+            </>
+          )}
         </div>
 
         <div className="mx-7 rounded-xl grid grid-cols-2 gap-2 p-4 bg-secondary mb-6">
@@ -144,20 +177,48 @@ export function RecipeDetailPage() {
             {
               icon: <Clock size={16} className="text-primary" />,
               label: "Время",
+              field: "approximateTime" as const,
               value: recipe.approximateTime,
             },
             {
               icon: <Flame size={16} className="text-accent" />,
               label: "Калории",
+              field: "calories" as const,
               value: `${recipe.calories}`,
             },
-          ].map(({ icon, label, value }) => (
+          ].map(({ icon, label, value, field }) => (
             <div key={label} className="flex flex-col items-center gap-1">
               {icon}
-              <span className="text-[10px] text-muted-foreground">{label}</span>
-              <span className="text-[13px] font-bold text-foreground">
-                {value}
-              </span>
+              {isEditing ? (
+                <label className="flex w-full flex-col items-center gap-1 text-xs text-muted-foreground">
+                  {label}
+                  <Input
+                    variant="compact"
+                    type={field === "calories" ? "number" : "text"}
+                    min={field === "calories" ? 0 : undefined}
+                    step={field === "calories" ? 1 : undefined}
+                    {...register(
+                      field,
+                      field === "calories"
+                        ? {
+                            setValueAs: (value: string) =>
+                              value === "" ? undefined : Number(value),
+                          }
+                        : {},
+                    )}
+                    className="text-center"
+                  />
+                </label>
+              ) : (
+                <>
+                  <span className="text-[10px] text-muted-foreground">
+                    {label}
+                  </span>
+                  <span className="text-[13px] font-bold text-foreground">
+                    {value}
+                  </span>
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -204,11 +265,18 @@ export function RecipeDetailPage() {
           </div>
         </div>
       </div>
-    </div>
+    </form>
   );
 
   const instructions = (
-    <div className="min-w-0 px-4 py-6 [overflow-wrap:anywhere] sm:px-8 sm:py-8">
+    <div
+      className={cn(
+        "min-w-0 px-4 py-6 [overflow-wrap:anywhere] sm:px-8 sm:py-8",
+        {
+          "xl:pb-36": isEditing,
+        },
+      )}
+    >
       <div className="max-w-2xl">
         <h2 className="font-['Lora',serif] text-[22px] font-semibold text-foreground mb-5">
           Инструкции
@@ -219,6 +287,7 @@ export function RecipeDetailPage() {
             const done = completedSteps.has(idx);
             return (
               <button
+                type="button"
                 key={step.num}
                 onClick={() => toggleStep(idx)}
                 className={cn(
@@ -287,7 +356,14 @@ export function RecipeDetailPage() {
   );
 
   return (
-    <div className="flex min-h-dvh min-w-0 flex-col bg-background xl:h-dvh xl:min-h-0 xl:overflow-hidden">
+    <div
+      className={cn(
+        "flex min-h-dvh min-w-0 flex-col bg-background xl:h-dvh xl:min-h-0 xl:overflow-hidden",
+        {
+          "pb-44 xl:pb-0": isEditing,
+        },
+      )}
+    >
       {/* Верхняя панель */}
       <div className="sticky top-[var(--app-header-height,0rem)] z-10 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b bg-card px-4 py-4 sm:px-8">
         <Link to="/recipes" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2">
@@ -303,15 +379,29 @@ export function RecipeDetailPage() {
               aria-pressed={isEditing}
               onClick={() => {
                 if (!canManageRecipes || !accessToken) return;
-                setEditingContext(
-                  isEditing ? null : { recipeSlug, accessToken },
-                );
+                if (isEditing) {
+                  cancelEditing();
+                  return;
+                }
+                reset({
+                  ...recipe,
+                  components: [...recipe.components],
+                  description: content.description || recipe.description,
+                });
+                setEditingContext({ recipeSlug, accessToken });
               }}
             >
-              {isEditing ? <X size={17} /> : <Pencil size={17} />}
-              {isEditing
-                ? "Выйти из режима редактирования"
-                : "Редактировать рецепт"}
+              {isEditing ? (
+                <>
+                  <X size={17} />
+                  Выйти из режима редактирования
+                </>
+              ) : (
+                <>
+                  <Pencil size={17} />
+                  Редактировать рецепт
+                </>
+              )}
             </Button>
           )}
           <span className="bg-primary text-white font-semibold text-sm px-3 py-1.5 rounded-full">
@@ -324,16 +414,8 @@ export function RecipeDetailPage() {
         </div>
       </div>
 
-      {isEditing && (
-        <div
-          role="status"
-          className="shrink-0 border-b bg-primary/5 px-4 py-3 text-sm text-primary sm:px-8"
-        >
-          Режим редактирования. Редактирование полей и сохранение пока
-          недоступны.
-        </div>
-      )}
       <RecipePanels overview={overview} instructions={instructions} />
+      {isEditing && <RecipeEditActions onCancel={cancelEditing} />}
     </div>
   );
 }
