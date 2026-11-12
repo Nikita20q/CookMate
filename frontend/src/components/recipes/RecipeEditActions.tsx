@@ -3,10 +3,12 @@ import { Save, X } from "lucide-react";
 
 interface RecipeEditActionsProps {
   onCancel: () => void;
+  onSave: () => void;
 }
 
 export default function RecipeEditActions({
   onCancel,
+  onSave,
 }: RecipeEditActionsProps) {
   return (
     <section
@@ -28,7 +30,7 @@ export default function RecipeEditActions({
           </Button>
           <Button
             variant="primary"
-            disabled
+            onClick={onSave}
             className="flex-1"
           >
             <Save size={16} />

@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { authApi } from "@/api/auth/api";
 import { favoritesApi } from "@/api/favorites/api";
@@ -20,6 +20,44 @@ beforeEach(() => {
 });
 
 describe("Редактор главной фотографии рецепта", () => {
+  it("по сохранению выводит текущий черновик и файлы, не изменяя кеш и не закрывая редактор", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const { user, client } = await renderApp(`/recipes/${recipe.slug}`);
+    await user.click(await screen.findByRole("button", { name: "Редактировать рецепт" }));
+    await user.clear(screen.getByLabelText("Название рецепта"));
+    await user.type(screen.getByLabelText("Название рецепта"), "Обновлённый омлет");
+    const photo = new File(["photo"], "main.jpg", { type: "image/jpeg" });
+    await user.upload(screen.getByLabelText("Фотография рецепта"), photo);
+    await user.click(screen.getByRole("button", { name: "Редактировать шаг 1" }));
+    await user.clear(screen.getByLabelText("Текст шага 1"));
+    await user.type(screen.getByLabelText("Текст шага 1"), "Новая инструкция");
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
+
+    await waitFor(() => expect(log).toHaveBeenCalledWith("Recipe update request", expect.objectContaining({
+      method: "PUT",
+      url: `/recipes/recipe/${recipe.slug}`,
+      body: expect.objectContaining({
+        title: "Обновлённый омлет",
+        image: { fileKey: "recipeImage" },
+        steps: expect.arrayContaining([expect.objectContaining({ num: 1, stepInstruction: "Новая инструкция" })]),
+      }),
+      files: { recipeImage: photo },
+      formData: expect.any(FormData),
+    })));
+    expect(client.getQueryData(["recipes", recipe.slug])).toEqual(detail);
+    expect(screen.getByRole("form", { name: "Черновик рецепта" })).toBeVisible();
+  });
+
+  it("не выводит запрос, пока в новом шаге не введён текст", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const { user } = await renderApp(`/recipes/${recipe.slug}`);
+    await user.click(await screen.findByRole("button", { name: "Редактировать рецепт" }));
+    await user.click(screen.getByRole("button", { name: "Добавить шаг" }));
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
+    expect(await screen.findByText("Введите текст инструкции")).toBeVisible();
+    expect(log).not.toHaveBeenCalled();
+  });
+
   it("показывает действия в режиме редактирования и восстанавливает удалённое фото при отмене", async () => {
     const { user } = await renderApp(`/recipes/${recipe.slug}`);
     expect(await screen.findByRole("img", { name: detail.title })).toHaveAttribute("src", detail.image);

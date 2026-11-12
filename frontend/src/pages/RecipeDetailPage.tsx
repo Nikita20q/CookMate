@@ -2,6 +2,8 @@ import Button from "@/components/ui/Button";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { matchRecipe } from "@/lib/ingredients";
 import { recipesApi } from "@/api/recipes/api";
+import { RECIPES_ENDPOINTS } from "@/api/recipes/endpoints";
+import { buildRecipeUpdateRequest } from "@/api/recipes/update-request";
 import { getApiError } from "@/api/errors";
 import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import Input from "@/components/ui/Input";
@@ -43,7 +45,7 @@ export function RecipeDetailPage() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const { canManageRecipes } = useCurrentUser();
   const form = useForm<RecipeEditorValues>();
-  const { register, reset, control } = form;
+  const { register, reset, control, handleSubmit } = form;
   const { field: imageField } = useController({
     control,
     name: "image",
@@ -67,6 +69,18 @@ export function RecipeDetailPage() {
     canManageRecipes &&
     editingContext?.recipeSlug === recipeSlug &&
     editingContext?.accessToken === accessToken;
+
+  const previewSave = handleSubmit((values) => {
+    if (!isEditing || !canManageRecipes) return;
+    const { payload, files, formData } = buildRecipeUpdateRequest(values);
+    console.log("Recipe update request", {
+      method: "PUT",
+      url: `${RECIPES_ENDPOINTS.getById}/${encodeURIComponent(recipeSlug)}`,
+      body: payload,
+      files,
+      formData,
+    });
+  });
 
   const {
     data: recipe,
@@ -166,7 +180,7 @@ export function RecipeDetailPage() {
   const overview = (
     <form
       aria-label={isEditing ? "Черновик рецепта" : undefined}
-      onSubmit={(event) => event.preventDefault()}
+      onSubmit={previewSave}
       className={cn("flex min-w-0 flex-col [overflow-wrap:anywhere]", {
         "xl:pb-36": isEditing,
       })}
@@ -485,7 +499,10 @@ export function RecipeDetailPage() {
 
       <RecipePanels overview={overview} instructions={instructions} />
       {isEditing && (
-        <RecipeEditActions onCancel={() => setDiscardRequested(true)} />
+        <RecipeEditActions
+          onCancel={() => setDiscardRequested(true)}
+          onSave={() => void previewSave()}
+        />
       )}
       {isEditing && discardRequested && (
         <ConfirmDialog

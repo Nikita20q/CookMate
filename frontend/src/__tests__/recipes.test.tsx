@@ -396,7 +396,7 @@ describe("Детальная страница рецепта", () => {
     expect(
       screen.getByRole("region", { name: "Действия редактирования рецепта" }),
     ).toBeVisible();
-    expect(screen.getByRole("button", { name: "Сохранить" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Сохранить" })).toBeEnabled();
     await user.click(screen.getByRole("button", { name: "Отменить" }));
     await user.click(screen.getByRole("button", { name: "Отменить изменения" }));
     expect(
