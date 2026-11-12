@@ -23,6 +23,7 @@ export function RecipesListPage() {
     (state) => state.setCurrentIngredients,
   );
 
+  const isInitialized = useIngredientsStore((state) => state.isInitialized);
   const recognitionResult = useIngredientsStore((state) => state.recognitionResult);
 
   const queryKey = useMemo(
@@ -42,8 +43,10 @@ export function RecipesListPage() {
     refetch,
   } = useQuery({
     queryKey,
-    queryFn: () => recipesApi.findByIngredients(currentIngredients),
-    enabled: recognitionResult === null && currentIngredients.length > 0,
+    queryFn: () => currentIngredients.length > 0
+      ? recipesApi.findByIngredients(currentIngredients)
+      : recipesApi.getSuggestions(),
+    enabled: recognitionResult === null && isInitialized,
     staleTime: 2 * 60 * 60 * 1000,
   });
 
@@ -189,10 +192,12 @@ export function RecipesListPage() {
           </h1>
 
           <Hint
-            text="Отсортированные по оценке совпадения ингредиентов - нажмите на рецепт для получения подробной информации"
+            text={currentIngredients.length > 0
+              ? "Отсортированные по оценке совпадения ингредиентов - нажмите на рецепт для получения подробной информации"
+              : "Подборка по базовым продуктам. Добавьте свои ингредиенты, чтобы уточнить поиск"}
             className="text-sm! mb-6"
           />
-          {currentIngredients.length > 0 && isRecipesPending && (
+          {isRecipesPending && (
             <p role="status" className="py-8 text-muted-foreground">
               Загружаем рецепты…
             </p>
@@ -215,10 +220,7 @@ export function RecipesListPage() {
               currentIngredients={currentIngredients}
             />
           ))}
-          {(currentIngredients.length === 0 ||
-            (!isRecipesError &&
-              !isRecipesPending &&
-              recipes?.recipeCount === 0)) && (
+          {!isRecipesError && !isRecipesPending && recipes?.recipeCount === 0 && (
             <div className="flex justify-center items-center">
               <div className="w-fit bg-card p-8 rounded-2xl border border-custom flex justify-center items-center gap-4 flex-col">
                 <div className="w-20 h-20 rounded-full flex items-center justify-center bg-secondary">

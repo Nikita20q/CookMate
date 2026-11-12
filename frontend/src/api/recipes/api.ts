@@ -23,6 +23,20 @@ export const recipesApi = {
     return apiClient.post(RECIPES_ENDPOINTS.search, { ingredients });
   },
 
+  getSuggestions: async (): Promise<RecognizeResponse> => {
+    const response: {
+      recipeNumber: number;
+      recipes: RecognizeResponse["recipes"];
+    } = await apiClient.get(RECIPES_ENDPOINTS.suggestions, {
+      params: { components: "соль,сахар,вода,черный перец,мука,сода" },
+    });
+    return {
+      recognizedIngredients: [],
+      recipeCount: response.recipeNumber,
+      recipes: response.recipes,
+    };
+  },
+
   getBySlug: (recipeSlug: string): Promise<RecipeDetail> => {
     return apiClient.get(`${RECIPES_ENDPOINTS.getById}/${recipeSlug}`);
   },

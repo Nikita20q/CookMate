@@ -1,10 +1,14 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, vi } from "vitest";
+import { recipesApi } from "@/api/recipes/api";
 import { useAuthStore } from "@/store/auth";
 import { useIngredientsStore } from "@/store/ingredients";
 
 beforeEach(() => {
+  vi.spyOn(recipesApi, "getSuggestions").mockResolvedValue({
+    recognizedIngredients: [], recipeCount: 0, recipes: [],
+  });
   localStorage.clear();
   useAuthStore.getState().clearAuth();
   useIngredientsStore.setState({
