@@ -11,13 +11,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLoaderData } from "@tanstack/react-router";
 import { ArrowLeft, Clock, Flame, CheckCircle2, Pencil, X } from "lucide-react";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import RecipePanels from "@/components/recipes/RecipePanels";
 import RecipeEditActions from "@/components/recipes/RecipeEditActions";
+import RecipeIngredientsEditor from "@/components/recipes/RecipeIngredientsEditor";
 import FavoriteButton from "@/components/recipes/FavoriteButton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAuthStore } from "@/store/auth";
-import type { RecipeDetail } from "@/types/recipes";
+import type { RecipeEditorValues } from "@/types/recipe-editor";
 
 interface Step {
   num: number;
@@ -36,7 +37,9 @@ export function RecipeDetailPage() {
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const accessToken = useAuthStore((state) => state.accessToken);
   const { canManageRecipes } = useCurrentUser();
-  const { register, reset } = useForm<RecipeDetail>();
+  const form = useForm<RecipeEditorValues>();
+  const { register, reset, control } = form;
+  const draftIngredients = useWatch({ control, name: "components", defaultValue: [] });
   const [editingContext, setEditingContext] = useState<{
     recipeSlug: string;
     accessToken: string;
@@ -126,7 +129,7 @@ export function RecipeDetailPage() {
     : { steps: [], description: recipe.description };
 
   const { ingredients, matchedCount, totalCount, matchScore } = matchRecipe(
-    recipe,
+    { components: isEditing ? draftIngredients.map((ingredient) => ingredient.title) : recipe.components },
     currentIngredients,
   );
 
@@ -233,36 +236,40 @@ export function RecipeDetailPage() {
               /{totalCount} в кладовой
             </span>
           </div>
-          <div className="flex flex-col gap-2">
-            {ingredients.map(({ key, title, available: isInPantry }) => {
-              return (
-                <div
-                  key={key}
-                  className={cn(
-                    "flex items-center justify-between px-4 py-2.5 rounded-xl border transition-colors",
-                    isInPantry
-                      ? "bg-[rgba(61,107,79,0.08)] border-[rgba(61,107,79,0.2)]"
-                      : "bg-card border-border",
-                  )}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div
-                      className={cn(
-                        "w-2 h-2 rounded-full flex-shrink-0",
-                        isInPantry ? "bg-primary" : "bg-muted-foreground",
-                      )}
-                    />
-                    <span className="text-sm text-foreground">{title}</span>
+          {isEditing ? (
+            <RecipeIngredientsEditor form={form} />
+          ) : (
+            <div className="flex flex-col gap-2">
+              {ingredients.map(({ key, title, available: isInPantry }) => {
+                return (
+                  <div
+                    key={key}
+                    className={cn(
+                      "flex items-center justify-between px-4 py-2.5 rounded-xl border transition-colors",
+                      isInPantry
+                        ? "bg-[rgba(61,107,79,0.08)] border-[rgba(61,107,79,0.2)]"
+                        : "bg-card border-border",
+                    )}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className={cn(
+                          "w-2 h-2 rounded-full flex-shrink-0",
+                          isInPantry ? "bg-primary" : "bg-muted-foreground",
+                        )}
+                      />
+                      <span className="text-sm text-foreground">{title}</span>
+                    </div>
+                    {!isInPantry && (
+                      <span className="px-2 py-0.5 rounded-full bg-secondary text-[10px] text-muted-foreground">
+                        купить
+                      </span>
+                    )}
                   </div>
-                  {!isInPantry && (
-                    <span className="px-2 py-0.5 rounded-full bg-secondary text-[10px] text-muted-foreground">
-                      купить
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </form>
@@ -385,7 +392,7 @@ export function RecipeDetailPage() {
                 }
                 reset({
                   ...recipe,
-                  components: [...recipe.components],
+                  components: recipe.components.map((title) => ({ title })),
                   description: content.description || recipe.description,
                 });
                 setEditingContext({ recipeSlug, accessToken });
