@@ -6,7 +6,7 @@ import RecipeAccordionItem from "@/components/recipes/RecipeAccordionItem";
 import Hint from "@/components/ui/Hint";
 import Ingredient from "@/components/ui/Ingredient";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import ButtonLink from "@/components/ui/ButtonLink";
 import { CircleX, ScanLine, Sparkles, SlidersHorizontal } from "lucide-react";
 import { Route as ScanRoute } from "@/routes/index";
 import { useMemo, useState } from "react";
@@ -24,7 +24,9 @@ export function RecipesListPage() {
   );
 
   const isInitialized = useIngredientsStore((state) => state.isInitialized);
-  const recognitionResult = useIngredientsStore((state) => state.recognitionResult);
+  const recognitionResult = useIngredientsStore(
+    (state) => state.recognitionResult,
+  );
 
   const queryKey = useMemo(
     () => ["recipes", [...currentIngredients].sort().join(",")],
@@ -43,9 +45,10 @@ export function RecipesListPage() {
     refetch,
   } = useQuery({
     queryKey,
-    queryFn: () => currentIngredients.length > 0
-      ? recipesApi.findByIngredients(currentIngredients)
-      : recipesApi.getSuggestions(),
+    queryFn: () =>
+      currentIngredients.length > 0
+        ? recipesApi.findByIngredients(currentIngredients)
+        : recipesApi.getSuggestions(),
     enabled: recognitionResult === null && isInitialized,
     staleTime: 2 * 60 * 60 * 1000,
   });
@@ -57,7 +60,13 @@ export function RecipesListPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
 
-  const { register, handleSubmit, reset, setFocus, formState: { errors } } = useForm<{ ingredient: string }>({
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setFocus,
+    formState: { errors },
+  } = useForm<{ ingredient: string }>({
     defaultValues: { ingredient: "" },
   });
   const [showIngForm, setShowIngForm] = useState(false);
@@ -80,18 +89,21 @@ export function RecipesListPage() {
 
   return (
     <div className="min-h-dvh">
-      <button
+      <Button
+        variant="primary"
         type="button"
         aria-label="Управлять ингредиентами"
         aria-expanded={filtersOpen}
         aria-controls="ingredient-filters"
         onClick={() => setFiltersOpen(true)}
-        className="fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-4 z-30 flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-primary-foreground shadow-lg transition-transform hover:scale-105 focus-visible:outline-2 lg:hidden"
+        className="fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-4 z-30 w-auto shadow-lg lg:hidden"
       >
         <SlidersHorizontal size={20} />
         Ингредиенты
-        <span className="rounded-full bg-white/20 px-2 text-sm">{currentIngredients.length}</span>
-      </button>
+        <span className="rounded-full bg-white/20 px-2 text-sm">
+          {currentIngredients.length}
+        </span>
+      </Button>
       <div className="flex min-h-dvh items-start">
         <ResponsiveSidebar
           id="ingredient-filters"
@@ -154,22 +166,23 @@ export function RecipesListPage() {
                   required: "Введите ингредиент",
                 })}
                 aria-invalid={!!errors.ingredient}
-                aria-describedby={errors.ingredient ? "ingredient-error" : undefined}
+                aria-describedby={
+                  errors.ingredient ? "ingredient-error" : undefined
+                }
                 aria-label="Новый ингредиент"
                 placeholder="Введите ингредиент"
               />
-              <FormError id="ingredient-error" message={errors.ingredient?.message} />
+              <FormError
+                id="ingredient-error"
+                message={errors.ingredient?.message}
+              />
               <div className="flex flex-row gap-4 justify-between">
-                <Button
-                  text="Добавить"
-                  type="submit"
-                  className="py-1!"
-                />
+                <Button text="Добавить" type="submit" className="flex-1" />
                 <Button
                   text="Отмена"
                   onClick={handleCancelAddIngredient}
                   variant="secondary"
-                  className="py-1!"
+                  className="flex-1"
                 />
               </div>
             </form>
@@ -177,13 +190,14 @@ export function RecipesListPage() {
 
           <div className="h-px bg-border" />
 
-          <Link
+          <ButtonLink
+            variant="secondary"
+            className="w-full"
             to={ScanRoute.to}
-            className="cursor-pointer bg-secondary text-foreground text-sm font-medium w-full py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all hover:opacity-80"
           >
             <ScanLine size={15} />
             Сканировать заново
-          </Link>
+          </ButtonLink>
         </ResponsiveSidebar>
 
         <div className="min-w-0 flex-1 px-4 pt-6 pb-28 sm:px-6 lg:px-8 lg:py-10">
@@ -192,9 +206,11 @@ export function RecipesListPage() {
           </h1>
 
           <Hint
-            text={currentIngredients.length > 0
-              ? "Отсортированные по оценке совпадения ингредиентов - нажмите на рецепт для получения подробной информации"
-              : "Подборка по базовым продуктам. Добавьте свои ингредиенты, чтобы уточнить поиск"}
+            text={
+              currentIngredients.length > 0
+                ? "Отсортированные по оценке совпадения ингредиентов - нажмите на рецепт для получения подробной информации"
+                : "Подборка по базовым продуктам. Добавьте свои ингредиенты, чтобы уточнить поиск"
+            }
             className="text-sm! mb-6"
           />
           {isRecipesPending && (
@@ -204,7 +220,12 @@ export function RecipesListPage() {
           )}
           {isRecipesError && (
             <div role="alert" className="py-8">
-              <p className="mb-4">{getApiError(searchError, "Не удалось загрузить рецепты.").message}</p>
+              <p className="mb-4">
+                {
+                  getApiError(searchError, "Не удалось загрузить рецепты.")
+                    .message
+                }
+              </p>
               <Button
                 text="Повторить поиск"
                 onClick={() => {
@@ -220,46 +241,46 @@ export function RecipesListPage() {
               currentIngredients={currentIngredients}
             />
           ))}
-          {!isRecipesError && !isRecipesPending && recipes?.recipeCount === 0 && (
-            <div className="flex justify-center items-center">
-              <div className="w-fit bg-card p-8 rounded-2xl border border-custom flex justify-center items-center gap-4 flex-col">
-                <div className="w-20 h-20 rounded-full flex items-center justify-center bg-secondary">
-                  <CircleX size={34} className="text-primary" />
-                </div>
-                <div className="text-center">
-                  <p className="text-foreground font-semibold">
-                    Рецепты не найдены
-                  </p>
-                  <Hint
-                    text={
-                      currentIngredients.length == 0
-                        ? "Не удалось распознать продукты на фотографии. Добавьте их вручную либо сфотографируйте их заново"
-                        : "Для данных продуктов не получилось найти подходящие рецепты"
-                    }
-                    className="text-sm! mt-2"
-                  />
-                </div>
-                <div className="flex w-full flex-col items-center justify-center gap-3 sm:flex-row">
-                  <Button
-                    text="Добавить ингредиенты"
-                    variant="primary"
-                    onClick={() => {
-                      setFiltersCollapsed(false);
-                      setFiltersOpen(true);
-                      setShowIngForm(true);
-                    }}
-                  />
-                  <Link to={ScanRoute.to} className="w-full rounded-xl">
+          {!isRecipesError &&
+            !isRecipesPending &&
+            recipes?.recipeCount === 0 && (
+              <div className="flex justify-center items-center">
+                <div className="w-fit bg-card p-8 rounded-2xl border border-custom flex justify-center items-center gap-4 flex-col">
+                  <div className="w-20 h-20 rounded-full flex items-center justify-center bg-secondary">
+                    <CircleX size={34} className="text-primary" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-foreground font-semibold">
+                      Рецепты не найдены
+                    </p>
+                    <Hint
+                      text={
+                        currentIngredients.length == 0
+                          ? "Не удалось распознать продукты на фотографии. Добавьте их вручную либо сфотографируйте их заново"
+                          : "Для данных продуктов не получилось найти подходящие рецепты"
+                      }
+                      className="text-sm! mt-2"
+                    />
+                  </div>
+                  <div className="flex w-full flex-col items-center justify-center gap-3 sm:flex-row">
                     <Button
+                      text="Добавить ингредиенты"
+                      variant="primary"
+                      onClick={() => {
+                        setFiltersCollapsed(false);
+                        setFiltersOpen(true);
+                        setShowIngForm(true);
+                      }}
+                    />
+                    <ButtonLink
+                      to={ScanRoute.to}
                       text="Сканировать заново"
                       variant="secondary"
-                      nofocus
                     />
-                  </Link>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
       </div>
     </div>

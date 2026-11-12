@@ -1,3 +1,4 @@
+import ActionButton from "@/components/ui/ActionButton";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Link,
@@ -10,6 +11,7 @@ import { NAV_ITEMS } from "@/lib/navigation";
 import cn from "@/utils/classname-func";
 import Hint from "@/components/ui/Hint";
 import Button from "@/components/ui/Button";
+import ButtonLink from "@/components/ui/ButtonLink";
 import { useAuthStore } from "@/store/auth";
 import { Route as loginRoute } from "@/routes/auth/login";
 import { Route as registerRoute } from "@/routes/auth/register";
@@ -29,6 +31,8 @@ const RootLayout = () => {
       if (state.accessToken === previous.accessToken) return;
       void queryClient.cancelQueries({ queryKey: ["favorites"] });
       queryClient.removeQueries({ queryKey: ["favorites"] });
+      void queryClient.cancelQueries({ queryKey: ["me"] });
+      queryClient.removeQueries({ queryKey: ["me"] });
     });
   }, [queryClient]);
   const isAuthenticated = useAuthStore((state) => state.status === "authenticated");
@@ -50,16 +54,15 @@ const RootLayout = () => {
   return (
     <div className="flex min-h-dvh [--app-header-height:4rem] md:[--app-header-height:0rem]">
       <header className="fixed inset-x-0 top-0 z-40 flex h-16 items-center gap-3 border-b bg-card px-4 md:hidden">
-        <button
+        <ActionButton
           type="button"
           aria-label="Открыть навигацию"
           aria-expanded={navigationOpen}
           aria-controls="main-navigation"
           onClick={() => setNavigationOpen(true)}
-          className="rounded-xl p-2 text-primary hover:bg-secondary focus-visible:outline-2"
         >
           <Menu size={24} />
-        </button>
+        </ActionButton>
         <span className="font-semibold">CookMate</span>
       </header>
       <ResponsiveSidebar
@@ -111,14 +114,12 @@ const RootLayout = () => {
             pathname != loginRoute.to &&
             pathname != registerRoute.to && (
               <div>
-                <Link to={loginRoute.to} search={{ returnTo: href }}>
-                  <Button text="Войти" />
-                </Link>
+                <ButtonLink to={loginRoute.to} search={{ returnTo: href }} text="Войти" className="w-full" />
               </div>
             )}
           {isAuthenticated && (
             <div>
-              <Button text="Выйти" onClick={handleLogout} variant="secondary" />
+              <Button text="Выйти" onClick={handleLogout} variant="secondary" className="w-full" />
             </div>
           )}
           <Hint text="Сфотографируйте ингредиенты в наличии или загрузите фотографию" />

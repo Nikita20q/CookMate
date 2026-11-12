@@ -29,7 +29,7 @@ export default function FavoriteRecipeCard({
             alt={recipe.title}
             className="h-48 w-full object-cover transition-transform group-hover:scale-105"
           />
-          <span className="absolute left-3 top-3 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-white">
+          <span className="absolute left-3 top-3 rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground">
             {matchScore}% совпадение
           </span>
         </div>
@@ -64,7 +64,9 @@ export default function FavoriteRecipeCard({
           </div>
         </div>
       </Link>
-      <FavoriteButton recipe={recipe} variant="remove" />
+      <div className="p-2">
+        <FavoriteButton recipe={recipe} variant="remove" />
+      </div>
     </article>
   );
 }

@@ -1,3 +1,4 @@
+import Button from "@/components/ui/Button";
 import { recipesApi } from "@/api/recipes/api";
 import { setApiFormErrors } from "@/lib/form-errors";
 import Hint from "@/components/ui/Hint";
@@ -11,7 +12,7 @@ import { useRef } from "react";
 import { useController, useForm } from "react-hook-form";
 import FormError from "@/components/ui/FormError";
 import { Route as recipesListRoute } from "@/routes/recipes/index";
-import { Link } from "@tanstack/react-router";
+import ButtonLink from "@/components/ui/ButtonLink";
 
 const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
 
@@ -118,16 +119,12 @@ export function ScanPage() {
               <div className="flex-1 h-px bg-border" />
             </div>
 
-            <button
+            <Button
+              variant="secondary"
               type="button"
+              className="w-full"
               disabled={isSubmitting}
               onClick={() => fileInputRef.current?.click()}
-              className={cn(
-                "bg-secondary text-foreground w-full py-4 rounded-xl flex items-center justify-center gap-2.5 transition-all",
-                isSubmitting
-                  ? "opacity-60 cursor-not-allowed"
-                  : "hover:opacity-90 active:scale-[0.99]",
-              )}
             >
               {isSubmitting ? (
                 <>
@@ -140,7 +137,7 @@ export function ScanPage() {
                   <span>Загрузите изображение</span>
                 </>
               )}
-            </button>
+            </Button>
 
             <Hint text="Максимальный размер изображения — 10 МБ" className="text-center" />
 
@@ -169,9 +166,9 @@ export function ScanPage() {
               {historyError && (
                 <div className="w-full space-y-2">
                   <FormError message={historyError} />
-                  <button type="button" disabled={isInitializing} className="text-sm text-primary" onClick={() => void initIngredients()}>
+                  <Button variant="secondary" disabled={isInitializing} onClick={() => void initIngredients()}>
                     Повторить загрузку истории
-                  </button>
+                  </Button>
                 </div>
               )}
               {lastIngredients.map((ing) => (
@@ -218,19 +215,15 @@ export function ScanPage() {
               </div>
             </div>
 
-            <Link
+            <ButtonLink
+              variant="primary"
+              className="w-full"
               to={lastIngredients.length > 0 ? recipesListRoute.to : "."}
-              className={cn(
-                "text-primary-foreground w-full px-5 py-3.5 rounded-xl flex items-center justify-center gap-2.5 text-center",
-                lastIngredientsNotFound
-                  ? "bg-[rgba(61,107,79,0.5)]"
-                  : "bg-primary transition-all hover:opacity-90 active:scale-[0.99] cursor-pointer",
-              )}
               disabled={lastIngredientsNotFound}
             >
               <ChefHatIcon size={18} />
               Найти подходящие рецепты
-            </Link>
+            </ButtonLink>
           </div>
         </div>
       </div>

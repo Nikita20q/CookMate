@@ -11,3 +11,10 @@ export interface VerifyEmailResponse {
   email: string;
   message: string;
 }
+
+// TMP
+export interface MeResponse {
+  userId: number;
+  isStaff: boolean;
+  email: string;
+}

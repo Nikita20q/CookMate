@@ -1,3 +1,5 @@
+import Button from "@/components/ui/Button";
+import ActionButton from "@/components/ui/ActionButton";
 import { Heart, LoaderCircle, RefreshCw } from "lucide-react";
 import { useNavigate, useLocation } from "@tanstack/react-router";
 import {
@@ -75,8 +77,11 @@ export default function FavoriteButton({
     label = `${apiError.message} — повторить`;
   }
 
+  const Control = variant === "icon" ? ActionButton : Button;
+
   return (
-    <button
+    <Control
+      variant="favorite"
       type="button"
       aria-label={label}
       aria-pressed={isFavorite}
@@ -84,18 +89,8 @@ export default function FavoriteButton({
       title={label}
       disabled={loading || forbidden}
       className={cn(
-        "flex shrink-0 items-center justify-center gap-2 transition-colors disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2",
         {
-          "h-9 w-9 rounded-full bg-secondary hover:bg-accent/10":
-            variant === "icon",
-          "rounded-xl border px-4 py-2 text-sm hover:opacity-90":
-            variant === "detail",
-          "border-accent bg-accent text-white":
-            variant === "detail" && !isFavorite,
-          "text-accent": isFavorite || variant === "remove",
-          "border-accent/30 bg-accent/10": variant === "detail" && isFavorite,
-          "w-full border-t px-4 py-3 text-xs hover:bg-accent/5":
-            variant === "remove",
+          "w-full": variant === "remove",
         },
         className,
       )}
@@ -119,6 +114,6 @@ export default function FavoriteButton({
         <Heart size={17} fill={isFavorite ? "currentColor" : "none"} />
       )}
       {variant !== "icon" && (loading ? "Обновляем…" : label)}
-    </button>
+    </Control>
   );
 }

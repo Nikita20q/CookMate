@@ -1,3 +1,4 @@
+import ActionButton from "@/components/ui/ActionButton";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { X } from "lucide-react";
 import { authApi } from "@/api/auth/api";
@@ -46,15 +47,14 @@ export default function EmailVerificationForm({ email, onClose, onVerified }: Em
       >
         <div className="flex items-center justify-between border-b border-custom pb-4">
           <h3 id="verification-title" className="text-lg font-semibold text-foreground">Подтвердите код</h3>
-          <button
+          <ActionButton
             type="button"
             aria-label="Закрыть подтверждение"
-            className="rounded-lg p-1 text-foreground hover:text-muted-foreground"
             onClick={onClose}
             disabled={isSubmitting}
           >
             <X />
-          </button>
+          </ActionButton>
         </div>
         <Controller
           name="code"

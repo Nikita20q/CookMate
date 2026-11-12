@@ -2,7 +2,9 @@ import { getAccessToken, useAuthStore } from "@/store/auth";
 import axios from "axios";
 import { AUTH_ENDPOINTS } from "@/api/auth/endpoints";
 
-const authEndpoints: readonly string[] = Object.values(AUTH_ENDPOINTS);
+const authEndpoints: readonly string[] = Object.entries(AUTH_ENDPOINTS)
+  .filter(([name]) => name !== "me")
+  .map(([, endpoint]) => endpoint);
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "/api/v1",

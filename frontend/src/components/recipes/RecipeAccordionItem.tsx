@@ -6,8 +6,7 @@ import { ChevronDown, ChevronUp, Clock, Flame } from "lucide-react";
 import Ingredient from "../ui/Ingredient";
 import Hint from "../ui/Hint";
 import FavoriteButton from "./FavoriteButton";
-import Button from "../ui/Button";
-import { Link } from "@tanstack/react-router";
+import ButtonLink from "../ui/ButtonLink";
 
 interface Props {
   recipe: Recipe;
@@ -22,7 +21,7 @@ const RecipeAccordionItem = ({ recipe, currentIngredients }: Props) => {
   return (
     <div className="relative rounded-2xl overflow-hidden transition-all bg-card mb-3 border border-custom">
       <FavoriteButton recipe={recipe} className="absolute right-4 top-4 z-10" />
-      <button className="w-full text-left" onClick={() => setOpen((v) => !v)}>
+      <button type="button" className="w-full text-left" onClick={() => setOpen((v) => !v)}>
         <div className="flex gap-4 p-4">
           <div className="relative flex-shrink-0">
             <ImageWithFallback
@@ -30,8 +29,8 @@ const RecipeAccordionItem = ({ recipe, currentIngredients }: Props) => {
               alt={recipe.title}
               className="rounded-xl object-cover w-[100px] h-[100px]"
             />
-            <div className="absolute -top-2 -right-2 w-10 h-10 rounded-full flex items-center justify-center bg-primary border border-card border-[2px]">
-              <span className="text-white text-xs font-bold">
+            <div className="absolute -top-2 -right-2 w-10 h-10 rounded-full flex items-center justify-center bg-secondary border border-card border-[2px]">
+              <span className="text-foreground text-xs font-bold">
                 {matchScore}%
               </span>
             </div>
@@ -93,9 +92,7 @@ const RecipeAccordionItem = ({ recipe, currentIngredients }: Props) => {
 
             <div className="flex flex-col justify-between">
               <div />
-              <Link to={"/recipes/$acronym"} params={{ acronym: recipe.slug }}>
-                <Button text="Посмотреть полный рецепт" nofocus />
-              </Link>
+              <ButtonLink to="/recipes/$acronym" params={{ acronym: recipe.slug }} text="Посмотреть полный рецепт" className="w-full" />
             </div>
           </div>
         </div>

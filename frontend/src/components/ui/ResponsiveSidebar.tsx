@@ -1,3 +1,4 @@
+import ActionButton from "@/components/ui/ActionButton";
 import { useEffect, useRef, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -103,25 +104,23 @@ export default function ResponsiveSidebar({
         <div className="flex h-16 shrink-0 items-center justify-between gap-2 border-b px-3">
           {!compact && <h2 className="px-2 text-sm font-bold">{title}</h2>}
           {docked ? onCollapsedChange && (
-            <button
+            <ActionButton
               type="button"
               aria-label={collapsed ? "Развернуть ингредиенты" : "Свернуть ингредиенты"}
               aria-expanded={!collapsed}
               aria-controls={`${id}-content`}
               onClick={() => onCollapsedChange(!collapsed)}
-              className="rounded-lg p-2 text-primary hover:bg-secondary focus-visible:outline-2"
             >
               {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-            </button>
+            </ActionButton>
           ) : (
-            <button
+            <ActionButton
               type="button"
               aria-label={`Закрыть: ${title}`}
               onClick={() => onOpenChange(false)}
-              className="rounded-lg p-2 hover:bg-secondary focus-visible:outline-2"
             >
               <X size={22} />
-            </button>
+            </ActionButton>
           )}
         </div>
         <div
