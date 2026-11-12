@@ -6,10 +6,12 @@ import { useIngredientsStore } from "@/store/ingredients";
 import cn from "@/utils/classname-func";
 import { useQuery } from "@tanstack/react-query";
 import { useLoaderData, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Clock, Flame, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Clock, Flame, CheckCircle2, Pencil, X } from "lucide-react";
 import { useState } from "react";
 import RecipePanels from "@/components/recipes/RecipePanels";
 import FavoriteButton from "@/components/recipes/FavoriteButton";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useAuthStore } from "@/store/auth";
 
 interface Step {
   num: number;
@@ -27,6 +29,16 @@ export function RecipeDetailPage() {
   const { recipeSlug } = useLoaderData({ from: "/recipes/$acronym" });
   const navigate = useNavigate();
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const { canManageRecipes } = useCurrentUser();
+  const [editingContext, setEditingContext] = useState<{
+    recipeSlug: string;
+    accessToken: string;
+  } | null>(null);
+  const isEditing =
+    canManageRecipes &&
+    editingContext?.recipeSlug === recipeSlug &&
+    editingContext?.accessToken === accessToken;
 
   const {
     data: recipe,
@@ -107,8 +119,10 @@ export function RecipeDetailPage() {
     ? JSON.parse(recipe.contentJson)
     : { steps: [], description: recipe.description };
 
-  const { ingredients, matchedCount, totalCount, matchScore } =
-    matchRecipe(recipe, currentIngredients);
+  const { ingredients, matchedCount, totalCount, matchScore } = matchRecipe(
+    recipe,
+    currentIngredients,
+  );
 
   const overview = (
     <div className="flex min-w-0 flex-col [overflow-wrap:anywhere]">
@@ -160,9 +174,7 @@ export function RecipeDetailPage() {
               Ингредиенты
             </h2>
             <span className="text-xs text-muted-foreground">
-              <span className="text-primary font-semibold">
-                {matchedCount}
-              </span>
+              <span className="text-primary font-semibold">{matchedCount}</span>
               /{totalCount} в кладовой
             </span>
           </div>
@@ -293,6 +305,24 @@ export function RecipeDetailPage() {
         </button>
 
         <div className="flex flex-wrap items-center gap-3">
+          {canManageRecipes && (
+            <button
+              type="button"
+              aria-pressed={isEditing}
+              onClick={() => {
+                if (!canManageRecipes || !accessToken) return;
+                setEditingContext(
+                  isEditing ? null : { recipeSlug, accessToken },
+                );
+              }}
+              className="cursor-pointer flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2 text-sm text-primary transition-colors hover:bg-primary/20 focus-visible:outline-2 focus-visible:outline-offset-2"
+            >
+              {isEditing ? <X size={17} /> : <Pencil size={17} />}
+              {isEditing
+                ? "Выйти из режима редактирования"
+                : "Редактировать рецепт"}
+            </button>
+          )}
           <span className="bg-primary text-white font-semibold text-sm px-3 py-1.5 rounded-full">
             {matchScore}% совпадение
           </span>
@@ -303,6 +333,15 @@ export function RecipeDetailPage() {
         </div>
       </div>
 
+      {isEditing && (
+        <div
+          role="status"
+          className="shrink-0 border-b bg-primary/5 px-4 py-3 text-sm text-primary sm:px-8"
+        >
+          Режим редактирования. Редактирование полей и сохранение пока
+          недоступны.
+        </div>
+      )}
       <RecipePanels overview={overview} instructions={instructions} />
     </div>
   );

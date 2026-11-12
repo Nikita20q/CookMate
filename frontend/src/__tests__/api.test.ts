@@ -30,6 +30,19 @@ afterEach(() => {
 });
 
 describe("Запросы к API", () => {
+  it("передаёт токен в /auth/me и завершает сессию при 401", async () => {
+    useAuthStore.getState().setAccessToken(token());
+    await apiClient.get("/auth/me");
+    expect(requests[0].headers.Authorization).toBe(`Bearer ${token()}`);
+
+    apiClient.defaults.adapter = async (config) => {
+      throw new AxiosError("Unauthorized", "ERR_BAD_REQUEST", config, undefined,
+        { status: 401, statusText: "Unauthorized", data: {}, headers: {}, config });
+    };
+    await expect(apiClient.get("/auth/me")).rejects.toBeInstanceOf(AxiosError);
+    expect(useAuthStore.getState().status).toBe("expired");
+  });
+
   it("передаёт Bearer-токен авторизованного пользователя", async () => {
     useAuthStore.getState().setAccessToken(token());
     await favoritesApi.getAll();

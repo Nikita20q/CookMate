@@ -1,5 +1,7 @@
 import { useAuthStore } from "@/store/auth";
 import { favoritesApi } from "@/api/favorites/api";
+import { authApi } from "@/api/auth/api";
+import type { MeResponse } from "@/api/auth/types";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { recipesApi } from "@/api/recipes/api";
@@ -16,6 +18,9 @@ beforeEach(() => {
     recognizedIngredients: ["яйцо"],
   });
   vi.spyOn(recipesApi, "getBySlug").mockResolvedValue(detail);
+  vi.spyOn(authApi, "me").mockResolvedValue({
+    userId: 1, email: "cook@example.com", isStaff: false,
+  });
 });
 
 describe("Подбор рецептов", () => {
@@ -245,6 +250,53 @@ describe("Подбор рецептов", () => {
 });
 
 describe("Детальная страница рецепта", () => {
+  it("не запрашивает профиль гостя и скрывает редактирование", async () => {
+    await renderApp(`/recipes/${recipe.slug}`);
+    await screen.findByRole("heading", { name: recipe.title });
+    expect(authApi.me).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Редактировать рецепт" })).not.toBeInTheDocument();
+  });
+
+  it("ожидает профиль и позволяет администратору переключать режим", async () => {
+    useAuthStore.getState().setAccessToken(token());
+    const response = deferred<MeResponse>();
+    vi.mocked(authApi.me).mockReturnValue(response.promise);
+    const { user } = await renderApp(`/recipes/${recipe.slug}`);
+    await screen.findByRole("heading", { name: recipe.title });
+    expect(screen.queryByRole("button", { name: "Редактировать рецепт" })).not.toBeInTheDocument();
+    await act(async () => response.resolve({ userId: 1, email: "admin@example.com", isStaff: true }));
+    await user.click(await screen.findByRole("button", { name: "Редактировать рецепт" }));
+    const exit = screen.getByRole("button", { name: "Выйти из режима редактирования" });
+    expect(exit).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("status")).toHaveTextContent("Режим редактирования");
+    await user.click(exit);
+    expect(screen.getByRole("button", { name: "Редактировать рецепт" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it.each(["user", "error"])("скрывает редактирование при профиле %s", async (profile) => {
+    useAuthStore.getState().setAccessToken(token());
+    if (profile === "error") vi.mocked(authApi.me).mockRejectedValue(new Error("Нет сети"));
+    await renderApp(`/recipes/${recipe.slug}`);
+    await screen.findByRole("heading", { name: recipe.title });
+    await waitFor(() => expect(authApi.me).toHaveBeenCalled());
+    expect(screen.queryByRole("button", { name: "Редактировать рецепт" })).not.toBeInTheDocument();
+  });
+
+  it("убирает режим и права администратора при смене аккаунта", async () => {
+    useAuthStore.getState().setAccessToken(token());
+    vi.mocked(authApi.me).mockResolvedValueOnce({ userId: 1, email: "admin@example.com", isStaff: true });
+    const { user, client } = await renderApp(`/recipes/${recipe.slug}`);
+    await user.click(await screen.findByRole("button", { name: "Редактировать рецепт" }));
+    const response = deferred<MeResponse>();
+    vi.mocked(authApi.me).mockReturnValue(response.promise);
+    await act(async () => useAuthStore.getState().setAccessToken(token("2")));
+    expect(screen.queryByRole("button", { name: /Редактировать рецепт|Выйти из режима редактирования/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Режим редактирования\./)).not.toBeInTheDocument();
+    expect(client.getQueryData(["me", token()])).toBeUndefined();
+    await act(async () => response.resolve({ userId: 2, email: "user@example.com", isStaff: false }));
+    expect(screen.queryByRole("button", { name: "Редактировать рецепт" })).not.toBeInTheDocument();
+  });
+
   it("отличает загрузку от отсутствующего рецепта", async () => {
     const response = deferred<RecipeDetail>();
     vi.mocked(recipesApi.getBySlug).mockReturnValue(response.promise);

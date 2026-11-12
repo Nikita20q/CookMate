@@ -1,8 +1,17 @@
 import apiClient from "../apiClient";
 import { AUTH_ENDPOINTS } from "./endpoints";
-import type { LoginResponse, VerifyEmailResponse } from "./types";
+import type { LoginResponse, MeResponse, VerifyEmailResponse } from "./types";
 
 export const authApi = {
+  me: (): Promise<MeResponse> => {
+    // TMP
+    return Promise.resolve({
+      userId: 1324,
+      email: "test@email.com",
+      isStaff: true,
+    });
+    // return apiClient.get(AUTH_ENDPOINTS.me);
+  },
   register: (email: string, password: string) => {
     return apiClient.post(AUTH_ENDPOINTS.register, { email, password });
   },

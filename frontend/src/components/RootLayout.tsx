@@ -29,6 +29,8 @@ const RootLayout = () => {
       if (state.accessToken === previous.accessToken) return;
       void queryClient.cancelQueries({ queryKey: ["favorites"] });
       queryClient.removeQueries({ queryKey: ["favorites"] });
+      void queryClient.cancelQueries({ queryKey: ["me"] });
+      queryClient.removeQueries({ queryKey: ["me"] });
     });
   }, [queryClient]);
   const isAuthenticated = useAuthStore((state) => state.status === "authenticated");
