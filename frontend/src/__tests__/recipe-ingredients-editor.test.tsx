@@ -39,6 +39,7 @@ describe("Редактор ингредиентов рецепта", () => {
     await user.click(screen.getByRole("button", { name: "Отменить изменение ингредиента" }));
     expect(ingredientList().getAllByRole("listitem")).toHaveLength(3);
     await user.click(screen.getByRole("button", { name: "Отменить" }));
+    await user.click(screen.getByRole("button", { name: "Отменить изменения" }));
     await user.click(screen.getByRole("button", { name: "Редактировать рецепт" }));
     expect(ingredientList().getAllByRole("listitem").map((row) => row.textContent)).toEqual(["яйцо", "сыр"]);
   });
@@ -69,6 +70,7 @@ describe("Редактор ингредиентов рецепта", () => {
     expect(ingredientList().getByText("Зелёный лук")).toBeVisible();
     expect(client.getQueryData(["recipes", recipe.slug])).toEqual(detail);
     await user.click(screen.getByRole("button", { name: "Отменить" }));
+    await user.click(screen.getByRole("button", { name: "Отменить изменения" }));
     await user.click(screen.getByRole("button", { name: "Редактировать рецепт" }));
     expect(ingredientList().getByText("яйцо")).toBeVisible();
     expect(ingredientList().queryByText("Зелёный лук")).not.toBeInTheDocument();
@@ -97,6 +99,7 @@ describe("Редактор ингредиентов рецепта", () => {
     expect(screen.getByText("В рецепте нет ингредиентов.")).toBeVisible();
     expect(screen.getByText("0% совпадение")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Отменить" }));
+    await user.click(screen.getByRole("button", { name: "Отменить изменения" }));
     await user.click(screen.getByRole("button", { name: "Редактировать рецепт" }));
     expect(ingredientList().getAllByRole("listitem").map((row) => row.textContent)).toEqual(["яйцо", "сыр"]);
   });
@@ -121,6 +124,7 @@ describe("Редактор ингредиентов рецепта", () => {
     await waitFor(() => expect(ingredientList().getAllByRole("listitem").map((row) => row.textContent)).toEqual(["сыр", "яйцо"]));
     expect(client.getQueryData(["recipes", recipe.slug])).toEqual(detail);
     await user.click(screen.getByRole("button", { name: "Отменить" }));
+    await user.click(screen.getByRole("button", { name: "Отменить изменения" }));
     await user.click(screen.getByRole("button", { name: "Редактировать рецепт" }));
     expect(ingredientList().getAllByRole("listitem").map((row) => row.textContent)).toEqual(["яйцо", "сыр"]);
   });

@@ -34,6 +34,7 @@ describe("Редактор главной фотографии рецепта", 
     expect(screen.queryByRole("img", { name: "Фотография рецепта" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Добавить фотографию рецепта" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Отменить" }));
+    await user.click(screen.getByRole("button", { name: "Отменить изменения" }));
     expect(screen.getByRole("img", { name: detail.title })).toHaveAttribute("src", detail.image);
   });
 
@@ -52,6 +53,7 @@ describe("Редактор главной фотографии рецепта", 
     expect(URL.revokeObjectURL).toHaveBeenCalledWith(firstUrl);
     expect(client.getQueryData(["recipes", recipe.slug])).toEqual(detail);
     await user.click(screen.getByRole("button", { name: "Отменить" }));
+    await user.click(screen.getByRole("button", { name: "Отменить изменения" }));
     expect(URL.revokeObjectURL).toHaveBeenCalledWith(secondUrl);
     expect(screen.getByRole("img", { name: detail.title })).toHaveAttribute("src", detail.image);
     await user.click(screen.getByRole("button", { name: "Редактировать рецепт" }));

@@ -49,6 +49,7 @@ describe("Редактор шагов инструкции", () => {
     expect(stepsList().getByText(/Разбейте яйца/)).toHaveTextContent("Перемешайте");
     expect(client.getQueryData(["recipes", recipe.slug])).toEqual(detail);
     await user.click(screen.getByRole("button", { name: "Отменить" }));
+    await user.click(screen.getByRole("button", { name: "Отменить изменения" }));
     expect(screen.getByRole("button", { name: /Взбейте яйца/ })).toBeVisible();
   });
 
@@ -88,6 +89,7 @@ describe("Редактор шагов инструкции", () => {
     expect(screen.getByRole("img", { name: "Фотография шага 1" })).toBeVisible();
     expect(client.getQueryData(["recipes", recipe.slug])).toEqual(detail);
     await user.click(screen.getByRole("button", { name: "Отменить" }));
+    await user.click(screen.getByRole("button", { name: "Отменить изменения" }));
     await user.click(screen.getByRole("button", { name: "Редактировать рецепт" }));
     expect(screen.queryByRole("img", { name: "Фотография шага 1" })).not.toBeInTheDocument();
   });
@@ -110,6 +112,7 @@ describe("Редактор шагов инструкции", () => {
     expect(screen.getByText("В рецепте нет шагов инструкции.")).toBeVisible();
     expect(screen.getByRole("button", { name: "Добавить шаг" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Отменить" }));
+    await user.click(screen.getByRole("button", { name: "Отменить изменения" }));
     await user.click(screen.getByRole("button", { name: "Редактировать рецепт" }));
     expect(stepsList().getAllByRole("listitem")).toHaveLength(2);
   });
@@ -134,6 +137,7 @@ describe("Редактор шагов инструкции", () => {
     expect(first.getByRole("heading", { name: "Шаг 1" })).toBeVisible();
     expect(first.getByRole("img", { name: "Фотография шага 1" })).toHaveAttribute("src", "/step.jpg");
     await user.click(screen.getByRole("button", { name: "Отменить" }));
+    await user.click(screen.getByRole("button", { name: "Отменить изменения" }));
     await user.click(screen.getByRole("button", { name: "Редактировать рецепт" }));
     expect(stepsList().getAllByRole("listitem")[0]).toHaveTextContent("Взбейте яйца");
   });

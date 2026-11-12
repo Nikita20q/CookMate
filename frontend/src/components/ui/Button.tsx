@@ -2,7 +2,7 @@ import type { ComponentProps } from "react";
 import cn from "@/utils/classname-func";
 
 interface ButtonStyleProps {
-  variant?: "primary" | "secondary" | "favorite";
+  variant?: "primary" | "secondary" | "outline" | "favorite" | "destructive";
   text?: string;
 }
 
@@ -15,6 +15,8 @@ function buttonClassName(
     {
       "border-transparent bg-primary text-primary-foreground not-disabled:hover:opacity-90": variant === "primary",
       "border-custom bg-secondary text-foreground not-disabled:hover:bg-muted": variant === "secondary",
+      "border-primary bg-transparent text-primary not-disabled:hover:bg-primary/10": variant === "outline",
+      "border-transparent bg-destructive text-destructive-foreground not-disabled:hover:opacity-90": variant === "destructive",
       "border-accent bg-accent text-white not-disabled:hover:opacity-90 aria-pressed:border-accent/30 aria-pressed:bg-accent/10 aria-pressed:text-accent": variant === "favorite",
     },
     className,

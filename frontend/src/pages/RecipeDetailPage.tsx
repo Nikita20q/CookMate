@@ -1,4 +1,5 @@
 import Button from "@/components/ui/Button";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { matchRecipe } from "@/lib/ingredients";
 import { recipesApi } from "@/api/recipes/api";
 import { getApiError } from "@/api/errors";
@@ -11,7 +12,7 @@ import cn from "@/utils/classname-func";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLoaderData } from "@tanstack/react-router";
 import { ArrowLeft, Clock, Flame, CheckCircle2, Pencil, X } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useController, useForm, useWatch } from "react-hook-form";
 import RecipePanels from "@/components/recipes/RecipePanels";
 import RecipeEditActions from "@/components/recipes/RecipeEditActions";
@@ -37,13 +38,27 @@ interface RecipeContent {
 export function RecipeDetailPage() {
   const { recipeSlug } = useLoaderData({ from: "/recipes/$acronym" });
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [discardRequested, setDiscardRequested] = useState(false);
+  const closeDiscardDialog = useCallback(() => setDiscardRequested(false), []);
   const accessToken = useAuthStore((state) => state.accessToken);
   const { canManageRecipes } = useCurrentUser();
   const form = useForm<RecipeEditorValues>();
   const { register, reset, control } = form;
-  const { field: imageField } = useController({ control, name: "image", defaultValue: "" });
-  const { field: imageFileField } = useController({ control, name: "imageFile", defaultValue: null });
-  const draftIngredients = useWatch({ control, name: "components", defaultValue: [] });
+  const { field: imageField } = useController({
+    control,
+    name: "image",
+    defaultValue: "",
+  });
+  const { field: imageFileField } = useController({
+    control,
+    name: "imageFile",
+    defaultValue: null,
+  });
+  const draftIngredients = useWatch({
+    control,
+    name: "components",
+    defaultValue: [],
+  });
   const [editingContext, setEditingContext] = useState<{
     recipeSlug: string;
     accessToken: string;
@@ -79,6 +94,7 @@ export function RecipeDetailPage() {
   };
 
   const cancelEditing = () => {
+    setDiscardRequested(false);
     reset();
     setEditingContext(null);
   };
@@ -110,7 +126,10 @@ export function RecipeDetailPage() {
         >
           Повторить загрузку
         </Button>
-        <Link to="/recipes" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2">
+        <Link
+          to="/recipes"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2"
+        >
           Назад к рецептам
         </Link>
       </div>
@@ -121,7 +140,10 @@ export function RecipeDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <p className="text-muted-foreground">Рецепт не найден.</p>
-        <Link to="/recipes" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2">
+        <Link
+          to="/recipes"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2"
+        >
           Назад к рецептам
         </Link>
       </div>
@@ -133,7 +155,11 @@ export function RecipeDetailPage() {
     : { steps: [], description: recipe.description };
 
   const { ingredients, matchedCount, totalCount, matchScore } = matchRecipe(
-    { components: isEditing ? draftIngredients.map((ingredient) => ingredient.title) : recipe.components },
+    {
+      components: isEditing
+        ? draftIngredients.map((ingredient) => ingredient.title)
+        : recipe.components,
+    },
     currentIngredients,
   );
 
@@ -398,7 +424,10 @@ export function RecipeDetailPage() {
     >
       {/* Верхняя панель */}
       <div className="sticky top-[var(--app-header-height,0rem)] z-10 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b bg-card px-4 py-4 sm:px-8">
-        <Link to="/recipes" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2">
+        <Link
+          to="/recipes"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2"
+        >
           <ArrowLeft size={16} />
           Назад к рецептам
         </Link>
@@ -406,15 +435,16 @@ export function RecipeDetailPage() {
         <div className="flex flex-wrap items-center gap-3">
           {canManageRecipes && (
             <Button
-              variant="primary"
+              variant={isEditing ? "outline" : "primary"}
               type="button"
               aria-pressed={isEditing}
               onClick={() => {
                 if (!canManageRecipes || !accessToken) return;
                 if (isEditing) {
-                  cancelEditing();
+                  setDiscardRequested(true);
                   return;
                 }
+                setDiscardRequested(false);
                 reset({
                   ...recipe,
                   imageFile: null,
@@ -443,7 +473,7 @@ export function RecipeDetailPage() {
               )}
             </Button>
           )}
-          <span className="bg-primary text-white font-semibold text-sm px-3 py-1.5 rounded-full">
+          <span className="bg-secondary text-foreground font-semibold text-sm px-3 py-1.5 rounded-full">
             {matchScore}% совпадение
           </span>
           <FavoriteButton
@@ -454,7 +484,20 @@ export function RecipeDetailPage() {
       </div>
 
       <RecipePanels overview={overview} instructions={instructions} />
-      {isEditing && <RecipeEditActions onCancel={cancelEditing} />}
+      {isEditing && (
+        <RecipeEditActions onCancel={() => setDiscardRequested(true)} />
+      )}
+      {isEditing && discardRequested && (
+        <ConfirmDialog
+          title="Отменить изменения?"
+          description="Все изменения рецепта будут удалены. Это действие нельзя отменить."
+          confirmLabel="Отменить изменения"
+          confirmVariant="destructive"
+          cancelLabel="Вернуться"
+          onConfirm={cancelEditing}
+          onCancel={closeDiscardDialog}
+        />
+      )}
     </div>
   );
 }

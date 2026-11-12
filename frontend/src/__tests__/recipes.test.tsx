@@ -318,6 +318,53 @@ describe("Подбор рецептов", () => {
 });
 
 describe("Детальная страница рецепта", () => {
+  it.each(["Отменить", "Выйти из режима редактирования"])(
+    "%s запрашивает подтверждение и сохраняет черновик до согласия",
+    async (triggerLabel) => {
+      useAuthStore.getState().setAccessToken(token());
+      vi.mocked(authApi.me).mockResolvedValue({
+        userId: 1,
+        email: "admin@example.com",
+        isStaff: true,
+      });
+      const { user } = await renderApp(`/recipes/${recipe.slug}`);
+      await user.click(await screen.findByRole("button", { name: "Редактировать рецепт" }));
+      const title = screen.getByLabelText("Название рецепта");
+      await user.clear(title);
+      await user.type(title, "Мой черновик");
+      const trigger = screen.getByRole("button", { name: triggerLabel });
+      await user.click(trigger);
+
+      const dialog = screen.getByRole("alertdialog", { name: "Отменить изменения?" });
+      expect(dialog).toHaveAccessibleDescription("Все изменения рецепта будут удалены. Это действие нельзя отменить.");
+      const keepEditing = within(dialog).getByRole("button", { name: "Вернуться" });
+      expect(keepEditing).toHaveFocus();
+      expect(title).toHaveValue("Мой черновик");
+      await user.click(keepEditing);
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+      expect(title).toHaveValue("Мой черновик");
+      expect(trigger).toHaveFocus();
+
+      await user.click(trigger);
+      await user.tab({ shift: true });
+      expect(screen.getByRole("button", { name: "Отменить изменения" })).toHaveFocus();
+      await user.tab();
+      expect(screen.getByRole("button", { name: "Вернуться" })).toHaveFocus();
+      await user.keyboard("{Escape}");
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+      expect(title).toHaveValue("Мой черновик");
+      expect(trigger).toHaveFocus();
+
+      await user.click(trigger);
+      await user.click(screen.getByRole("button", { name: "Отменить изменения" }));
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+      expect(screen.queryByRole("form", { name: "Черновик рецепта" })).not.toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: detail.title })).toBeVisible();
+      await user.click(screen.getByRole("button", { name: "Редактировать рецепт" }));
+      expect(screen.getByLabelText("Название рецепта")).toHaveValue(detail.title);
+    },
+  );
+
   it("не запрашивает профиль гостя и скрывает редактирование", async () => {
     await renderApp(`/recipes/${recipe.slug}`);
     await screen.findByRole("heading", { name: recipe.title });
@@ -351,6 +398,7 @@ describe("Детальная страница рецепта", () => {
     ).toBeVisible();
     expect(screen.getByRole("button", { name: "Сохранить" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Отменить" }));
+    await user.click(screen.getByRole("button", { name: "Отменить изменения" }));
     expect(
       screen.getByRole("button", { name: "Редактировать рецепт" }),
     ).toHaveAttribute("aria-pressed", "false");
@@ -393,6 +441,7 @@ describe("Детальная страница рецепта", () => {
     expect(client.getQueryData(["recipes", recipe.slug])).toEqual(detail);
     expect(screen.getByText("Взбейте яйца")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Отменить" }));
+    await user.click(screen.getByRole("button", { name: "Отменить изменения" }));
     expect(screen.getByRole("heading", { name: detail.title })).toBeVisible();
     expect(screen.getByText(detail.description)).toBeVisible();
     expect(screen.getByText(detail.approximateTime)).toBeVisible();
@@ -431,6 +480,7 @@ describe("Детальная страница рецепта", () => {
       "Мой черновик",
     );
     await user.click(screen.getByRole("button", { name: "Отменить" }));
+    await user.click(screen.getByRole("button", { name: "Отменить изменения" }));
     expect(
       screen.getByRole("heading", { name: "Обновлено на сервере" }),
     ).toBeVisible();
