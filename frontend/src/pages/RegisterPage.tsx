@@ -44,7 +44,7 @@ const RegisterPage = () => {
         <h1>Регистрация</h1>
         <form noValidate className="flex flex-col gap-4 w-full" onSubmit={handleSubmit(handleRegister)}>
           <AuthFields form={form} registration readOnly={verificationEmail !== null} />
-          <Button type="submit" text="Зарегистрироваться" disabled={isSubmitting || verificationEmail !== null} />
+          <Button type="submit" text="Зарегистрироваться" disabled={isSubmitting || verificationEmail !== null} className="w-full" />
         </form>
         <div>
           Есть аккаунт?{" "}

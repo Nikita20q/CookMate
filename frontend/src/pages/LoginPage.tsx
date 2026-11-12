@@ -37,7 +37,7 @@ const LoginPage = () => {
           onSubmit={handleSubmit(handleLogin)}
         >
           <AuthFields form={form} />
-          <Button type="submit" text="Войти" disabled={isSubmitting} />
+          <Button type="submit" text="Войти" disabled={isSubmitting} className="w-full" />
         </form>
         <div>
           <span>Нет аккаунта? </span>

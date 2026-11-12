@@ -1,3 +1,4 @@
+import Button from "@/components/ui/Button";
 import { matchRecipe } from "@/lib/ingredients";
 import { recipesApi } from "@/api/recipes/api";
 import { getApiError } from "@/api/errors";
@@ -5,7 +6,7 @@ import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import { useIngredientsStore } from "@/store/ingredients";
 import cn from "@/utils/classname-func";
 import { useQuery } from "@tanstack/react-query";
-import { useLoaderData, useNavigate } from "@tanstack/react-router";
+import { Link, useLoaderData } from "@tanstack/react-router";
 import { ArrowLeft, Clock, Flame, CheckCircle2, Pencil, X } from "lucide-react";
 import { useState } from "react";
 import RecipePanels from "@/components/recipes/RecipePanels";
@@ -27,7 +28,6 @@ interface RecipeContent {
 
 export function RecipeDetailPage() {
   const { recipeSlug } = useLoaderData({ from: "/recipes/$acronym" });
-  const navigate = useNavigate();
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const accessToken = useAuthStore((state) => state.accessToken);
   const { canManageRecipes } = useCurrentUser();
@@ -83,20 +83,17 @@ export function RecipeDetailPage() {
         className="flex min-h-screen flex-col items-center justify-center gap-4"
       >
         <p>{getApiError(error, "Не удалось загрузить рецепт.").message}</p>
-        <button
+        <Button
+          variant="primary"
           onClick={() => {
             refetch();
           }}
-          className="text-primary"
         >
           Повторить загрузку
-        </button>
-        <button
-          onClick={() => navigate({ to: "/recipes" })}
-          className="text-primary"
-        >
+        </Button>
+        <Link to="/recipes" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2">
           Назад к рецептам
-        </button>
+        </Link>
       </div>
     );
   }
@@ -105,12 +102,9 @@ export function RecipeDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <p className="text-muted-foreground">Рецепт не найден.</p>
-        <button
-          onClick={() => navigate({ to: "/recipes" })}
-          className="text-primary hover:opacity-70 transition-opacity"
-        >
+        <Link to="/recipes" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2">
           Назад к рецептам
-        </button>
+        </Link>
       </div>
     );
   }
@@ -296,17 +290,15 @@ export function RecipeDetailPage() {
     <div className="flex min-h-dvh min-w-0 flex-col bg-background xl:h-dvh xl:min-h-0 xl:overflow-hidden">
       {/* Верхняя панель */}
       <div className="sticky top-[var(--app-header-height,0rem)] z-10 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b bg-card px-4 py-4 sm:px-8">
-        <button
-          onClick={() => navigate({ to: "/recipes" })}
-          className="text-muted-foreground text-sm flex items-center gap-2 transition-all hover:opacity-70"
-        >
+        <Link to="/recipes" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2">
           <ArrowLeft size={16} />
           Назад к рецептам
-        </button>
+        </Link>
 
         <div className="flex flex-wrap items-center gap-3">
           {canManageRecipes && (
-            <button
+            <Button
+              variant="primary"
               type="button"
               aria-pressed={isEditing}
               onClick={() => {
@@ -315,13 +307,12 @@ export function RecipeDetailPage() {
                   isEditing ? null : { recipeSlug, accessToken },
                 );
               }}
-              className="cursor-pointer flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2 text-sm text-primary transition-colors hover:bg-primary/20 focus-visible:outline-2 focus-visible:outline-offset-2"
             >
               {isEditing ? <X size={17} /> : <Pencil size={17} />}
               {isEditing
                 ? "Выйти из режима редактирования"
                 : "Редактировать рецепт"}
-            </button>
+            </Button>
           )}
           <span className="bg-primary text-white font-semibold text-sm px-3 py-1.5 rounded-full">
             {matchScore}% совпадение

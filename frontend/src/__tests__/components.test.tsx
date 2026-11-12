@@ -1,10 +1,40 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { createRef } from "react";
+import userEvent from "@testing-library/user-event";
 import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import Button from "@/components/ui/Button";
+import ActionButton from "@/components/ui/ActionButton";
+import Ingredient from "@/components/ui/Ingredient";
 import RecipePanels from "@/components/recipes/RecipePanels";
 
 describe("Общие компоненты", () => {
+  it("передаёт ref, HTML-пропсы и содержимое в нативную кнопку", () => {
+    const ref = createRef<HTMLButtonElement>();
+    render(
+      <ActionButton ref={ref} aria-label="Настройки" aria-pressed name="action" value="settings">
+        <span aria-hidden="true">⚙</span>
+      </ActionButton>,
+    );
+    const button = screen.getByRole("button", { name: "Настройки" });
+    expect(ref.current).toBe(button);
+    expect(button).toHaveAttribute("type", "button");
+    expect(button).toHaveAttribute("aria-pressed", "true");
+    expect(button).toHaveAttribute("name", "action");
+    expect(button).toHaveAttribute("value", "settings");
+  });
+
+  it("активирует кнопку ингредиента клавишами Enter и пробелом", async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+    render(<Ingredient title="сыр" onClick={onClick} deletable />);
+    await user.tab();
+    expect(screen.getByRole("button", { name: "сыр" })).toHaveFocus();
+    await user.keyboard("{Enter}");
+    await user.keyboard(" ");
+    expect(onClick).toHaveBeenCalledTimes(2);
+  });
+
   it("вызывает действие доступной кнопки", () => {
     const onClick = vi.fn();
     render(<Button text="Добавить" onClick={onClick} />);

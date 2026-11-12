@@ -26,27 +26,31 @@ const Ingredient = ({
   const handleMouseLeave = () => {
     setMouseOn(false);
   };
-  return (
-    <span
+  const classes = cn(
+    "relative px-3 py-1.5 rounded-full capitalize bg-secondary text-sm text-foreground border border-custom flex flex-row items-center",
+    className,
+    {
+      "text-primary bg-[rgba(61,107,79,0.12)]!": available,
+      "cursor-pointer": !!onClick,
+      "pl-2! pr-3! cursor-pointer": deletable,
+    },
+  );
+  const icon = deletable && (mouseOn
+    ? <X size={16} color="#7a6e5f" />
+    : <Dot size={16} strokeWidth={10} color="#7a6e5f" />);
+  return onClick ? (
+    <button
+      type="button"
       onClick={onClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className={cn(
-        "relative px-3 py-1.5 rounded-full capitalize bg-secondary text-sm text-foreground border border-custom flex flex-row items-center",
-        className,
-        {
-          "text-primary bg-[rgba(61,107,79,0.12)]!": available,
-          "cursor-pointer": onClick ? true : false,
-          "pl-2! pr-3! cursor-pointer": deletable,
-        },
-      )}
+      className={classes}
     >
-      {deletable && !mouseOn && (
-        <Dot size={16} strokeWidth={10} color="#7a6e5f" />
-      )}
-      {deletable && mouseOn && <X size={16} color="#7a6e5f" />}
-      {title}
-    </span>
+      {icon}
+      <span>{title}</span>
+    </button>
+  ) : (
+    <span className={classes}>{icon}{title}</span>
   );
 };
 

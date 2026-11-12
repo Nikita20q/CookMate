@@ -1,4 +1,5 @@
-import { Link } from "@tanstack/react-router";
+import Button from "@/components/ui/Button";
+import ButtonLink from "@/components/ui/ButtonLink";
 import { ChefHat, Heart, LoaderCircle, RefreshCw } from "lucide-react";
 import { getApiError } from "@/api/errors";
 import FavoriteRecipeCard from "@/components/recipes/FavoriteRecipeCard";
@@ -6,9 +7,6 @@ import { useQuery } from "@tanstack/react-query";
 import { favoritesApi } from "@/api/favorites/api";
 import { useAuthStore } from "@/store/auth";
 import { useIngredientsStore } from "@/store/ingredients";
-
-const linkClass =
-  "inline-flex items-center justify-center gap-2 rounded-xl bg-secondary px-5 py-3 text-sm font-semibold transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2";
 
 export default function FavoritesPage() {
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -43,10 +41,10 @@ export default function FavoritesPage() {
             Избранные рецепты
           </h1>
         </div>
-        <Link to="/recipes" className={linkClass}>
+        <ButtonLink variant="secondary" to="/recipes" className="w-fit">
           <ChefHat size={17} />
           Найти ещё рецепты
-        </Link>
+        </ButtonLink>
       </header>
 
       {needsLogin ? (
@@ -59,9 +57,9 @@ export default function FavoritesPage() {
             Войдите в аккаунт, чтобы добавлять рецепты в избранное и
             возвращаться к ним в любое время.
           </p>
-          <Link to="/auth/login" search={{ returnTo: "/favorites" }} className={linkClass}>
+          <ButtonLink variant="secondary" to="/auth/login" search={{ returnTo: "/favorites" }} className="w-fit">
             Войти в аккаунт
-          </Link>
+          </ButtonLink>
         </div>
       ) : favorites.isPending ? (
         <div
@@ -85,9 +83,10 @@ export default function FavoritesPage() {
             {apiError.message}
           </p>
           {!forbidden && (
-            <button
+            <Button
+              variant="secondary"
               type="button"
-              className={linkClass}
+              className="w-auto"
               disabled={favorites.isFetching}
               onClick={() => void favorites.refetch()}
             >
@@ -96,7 +95,7 @@ export default function FavoritesPage() {
                 className={favorites.isFetching ? "animate-spin" : ""}
               />
               Повторить
-            </button>
+            </Button>
           )}
         </div>
       ) : favorites.data?.recipes.length ? (
@@ -119,10 +118,10 @@ export default function FavoritesPage() {
             Нажмите на сердечко в списке рецептов или на странице блюда, чтобы
             сохранить его здесь.
           </p>
-          <Link to="/recipes" className={linkClass}>
+          <ButtonLink variant="secondary" to="/recipes" className="w-fit">
             <ChefHat size={17} />
             Подобрать рецепты
-          </Link>
+          </ButtonLink>
         </div>
       )}
     </div>

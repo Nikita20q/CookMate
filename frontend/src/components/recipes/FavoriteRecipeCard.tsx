@@ -64,7 +64,9 @@ export default function FavoriteRecipeCard({
           </div>
         </div>
       </Link>
-      <FavoriteButton recipe={recipe} variant="remove" />
+      <div className="p-2">
+        <FavoriteButton recipe={recipe} variant="remove" />
+      </div>
     </article>
   );
 }
