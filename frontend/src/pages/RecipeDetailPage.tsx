@@ -15,6 +15,7 @@ import { useForm, useWatch } from "react-hook-form";
 import RecipePanels from "@/components/recipes/RecipePanels";
 import RecipeEditActions from "@/components/recipes/RecipeEditActions";
 import RecipeIngredientsEditor from "@/components/recipes/RecipeIngredientsEditor";
+import RecipeStepsEditor from "@/components/recipes/RecipeStepsEditor";
 import FavoriteButton from "@/components/recipes/FavoriteButton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAuthStore } from "@/store/auth";
@@ -289,74 +290,80 @@ export function RecipeDetailPage() {
           Инструкции
         </h2>
 
-        <div className="flex flex-col gap-3">
-          {content.steps.map((step, idx) => {
-            const done = completedSteps.has(idx);
-            return (
-              <button
-                type="button"
-                key={step.num}
-                onClick={() => toggleStep(idx)}
-                className={cn(
-                  "w-full text-left flex gap-4 p-5 rounded-xl transition-all hover:shadow-sm active:scale-[0.99] border",
-                  done
-                    ? "bg-[rgba(61,107,79,0.06)] border-[rgba(61,107,79,0.2)]"
-                    : "bg-card border-border",
-                )}
-              >
-                <div className="flex-shrink-0 mt-0.5">
-                  {done ? (
-                    <CheckCircle2 size={22} className="text-primary" />
-                  ) : (
-                    <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-xs font-bold">
-                        {step.num}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p
+        {isEditing ? (
+          <RecipeStepsEditor form={form} />
+        ) : (
+          <>
+            <div className="flex flex-col gap-3">
+              {content.steps.map((step, idx) => {
+                const done = completedSteps.has(idx);
+                return (
+                  <button
+                    type="button"
+                    key={step.num}
+                    onClick={() => toggleStep(idx)}
                     className={cn(
-                      "text-sm leading-relaxed",
+                      "w-full text-left flex gap-4 p-5 rounded-xl transition-all hover:shadow-sm active:scale-[0.99] border",
                       done
-                        ? "text-muted-foreground line-through"
-                        : "text-foreground",
+                        ? "bg-[rgba(61,107,79,0.06)] border-[rgba(61,107,79,0.2)]"
+                        : "bg-card border-border",
                     )}
                   >
-                    {step.stepInstruction}
-                  </p>
-                  {step.imageUrl && (
-                    <div className="mt-3 rounded-lg overflow-hidden">
-                      <ImageWithFallback
-                        src={step.imageUrl}
-                        alt={`Шаг ${step.num}`}
-                        className="w-full h-auto object-cover"
-                      />
+                    <div className="flex-shrink-0 mt-0.5">
+                      {done ? (
+                        <CheckCircle2 size={22} className="text-primary" />
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                          <span className="text-white text-xs font-bold">
+                            {step.num}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {content.steps.length > 0 && (
-          <div className="mt-6 flex items-center gap-3">
-            <div className="flex-1 h-1.5 rounded-full bg-secondary">
-              <div
-                className="h-full rounded-full bg-primary transition-all"
-                style={{
-                  width: `${
-                    (completedSteps.size / content.steps.length) * 100
-                  }%`,
-                }}
-              />
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className={cn(
+                          "text-sm leading-relaxed",
+                          done
+                            ? "text-muted-foreground line-through"
+                            : "text-foreground",
+                        )}
+                      >
+                        {step.stepInstruction}
+                      </p>
+                      {step.imageUrl && (
+                        <div className="mt-3 rounded-lg overflow-hidden">
+                          <ImageWithFallback
+                            src={step.imageUrl}
+                            alt={`Шаг ${step.num}`}
+                            className="w-full h-auto object-cover"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-            <span className="text-sm text-muted-foreground whitespace-nowrap">
-              {completedSteps.size}/{content.steps.length} шагов выполнено
-            </span>
-          </div>
+
+            {content.steps.length > 0 && (
+              <div className="mt-6 flex items-center gap-3">
+                <div className="flex-1 h-1.5 rounded-full bg-secondary">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{
+                      width: `${
+                        (completedSteps.size / content.steps.length) * 100
+                      }%`,
+                    }}
+                  />
+                </div>
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  {completedSteps.size}/{content.steps.length} шагов выполнено
+                </span>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -393,6 +400,12 @@ export function RecipeDetailPage() {
                 reset({
                   ...recipe,
                   components: recipe.components.map((title) => ({ title })),
+                  steps: content.steps.map((step) => ({
+                    stepTitle: step.stepTitle,
+                    stepInstruction: step.stepInstruction,
+                    imageUrl: step.imageUrl,
+                    imageFile: null,
+                  })),
                   description: content.description || recipe.description,
                 });
                 setEditingContext({ recipeSlug, accessToken });

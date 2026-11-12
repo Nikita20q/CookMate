@@ -391,7 +391,7 @@ describe("Детальная страница рецепта", () => {
       await user.type(input, field.changed);
     }
     expect(client.getQueryData(["recipes", recipe.slug])).toEqual(detail);
-    expect(screen.getByRole("button", { name: /Взбейте яйца/ })).toBeVisible();
+    expect(screen.getByText("Взбейте яйца")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Отменить" }));
     expect(screen.getByRole("heading", { name: detail.title })).toBeVisible();
     expect(screen.getByText(detail.description)).toBeVisible();
