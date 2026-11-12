@@ -5,13 +5,14 @@ import { getApiError } from "@/api/errors";
 import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import Input from "@/components/ui/Input";
 import Textarea from "@/components/ui/Textarea";
+import PhotoEditor from "@/components/ui/PhotoEditor";
 import { useIngredientsStore } from "@/store/ingredients";
 import cn from "@/utils/classname-func";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLoaderData } from "@tanstack/react-router";
 import { ArrowLeft, Clock, Flame, CheckCircle2, Pencil, X } from "lucide-react";
 import { useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useController, useForm, useWatch } from "react-hook-form";
 import RecipePanels from "@/components/recipes/RecipePanels";
 import RecipeEditActions from "@/components/recipes/RecipeEditActions";
 import RecipeIngredientsEditor from "@/components/recipes/RecipeIngredientsEditor";
@@ -40,6 +41,8 @@ export function RecipeDetailPage() {
   const { canManageRecipes } = useCurrentUser();
   const form = useForm<RecipeEditorValues>();
   const { register, reset, control } = form;
+  const { field: imageField } = useController({ control, name: "image", defaultValue: "" });
+  const { field: imageFileField } = useController({ control, name: "imageFile", defaultValue: null });
   const draftIngredients = useWatch({ control, name: "components", defaultValue: [] });
   const [editingContext, setEditingContext] = useState<{
     recipeSlug: string;
@@ -142,14 +145,29 @@ export function RecipeDetailPage() {
         "xl:pb-36": isEditing,
       })}
     >
-      <div className="relative h-56 shrink-0 sm:h-[280px]">
-        <ImageWithFallback
-          src={recipe.image}
-          alt={recipe.title}
-          className="w-full h-full object-cover"
+      {isEditing ? (
+        <PhotoEditor
+          contextLabel="рецепта"
+          downloadName="recipe-photo"
+          imageUrl={imageField.value}
+          imageFile={imageFileField.value}
+          editing
+          className="p-4"
+          onChange={(file) => {
+            imageFileField.onChange(file);
+            if (!file) imageField.onChange("");
+          }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40" />
-      </div>
+      ) : (
+        <div className="relative h-56 shrink-0 sm:h-[280px]">
+          <ImageWithFallback
+            src={recipe.image}
+            alt={recipe.title}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40" />
+        </div>
+      )}
 
       <div>
         <div className="px-7 pt-6 pb-4">
@@ -399,6 +417,7 @@ export function RecipeDetailPage() {
                 }
                 reset({
                   ...recipe,
+                  imageFile: null,
                   components: recipe.components.map((title) => ({ title })),
                   steps: content.steps.map((step) => ({
                     stepTitle: step.stepTitle,

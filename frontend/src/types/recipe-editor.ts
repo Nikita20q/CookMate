@@ -8,6 +8,7 @@ export interface RecipeEditorStep {
 }
 
 export type RecipeEditorValues = Omit<RecipeDetail, "components"> & {
+  imageFile: File | null;
   components: { title: string }[];
   steps: RecipeEditorStep[];
 };

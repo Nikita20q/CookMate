@@ -2,20 +2,23 @@ import { Download, ImagePlus, RefreshCw, Trash2 } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import ActionButton from "@/components/ui/ActionButton";
 import FormError from "@/components/ui/FormError";
+import cn from "@/utils/classname-func";
 
-interface StepPhotoEditorProps {
-  stepNumber: number;
+interface PhotoEditorProps {
+  contextLabel: string;
+  downloadName: string;
   imageUrl: string;
   imageFile: File | null;
   editing: boolean;
   onChange: (file: File | null) => void;
+  className?: string;
 }
 
 const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
 
-export default function StepPhotoEditor({
-  stepNumber, imageUrl, imageFile, editing, onChange,
-}: StepPhotoEditorProps) {
+export default function PhotoEditor({
+  contextLabel, downloadName, imageUrl, imageFile, editing, onChange, className,
+}: PhotoEditorProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const [error, setError] = useState<string>();
@@ -35,7 +38,7 @@ export default function StepPhotoEditor({
     if (!href) return;
     const link = document.createElement("a");
     link.href = href;
-    link.download = imageFile?.name ?? `step-${stepNumber}`;
+    link.download = imageFile?.name ?? downloadName;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
     link.click();
@@ -44,13 +47,13 @@ export default function StepPhotoEditor({
   if (!editing && !hasPhoto) return null;
 
   return (
-    <div className="mt-3 space-y-2">
+    <div className={cn("space-y-2", className)}>
       {editing && (
         <input
           ref={inputRef}
           type="file"
           accept="image/*"
-          aria-label={`Фотография шага ${stepNumber}`}
+          aria-label={`Фотография ${contextLabel}`}
           className="hidden"
           onChange={(event) => {
             const file = event.target.files?.[0];
@@ -75,27 +78,27 @@ export default function StepPhotoEditor({
           <img
             ref={imageRef}
             src={imageFile ? undefined : imageUrl}
-            alt={`Фотография шага ${stepNumber}`}
+            alt={`Фотография ${contextLabel}`}
             className="max-h-80 w-full object-contain"
           />
           {editing && (
             <div className="absolute right-2 top-2 flex gap-0.5 rounded-lg bg-card/95 p-0.5 shadow-sm">
               <ActionButton
                 variant="neutral"
-                aria-label={`Скачать фотографию шага ${stepNumber}`}
+                aria-label={`Скачать фотографию ${contextLabel}`}
                 onClick={downloadPhoto}
               >
                 <Download size={17} />
               </ActionButton>
               <ActionButton
-                aria-label={`Заменить фотографию шага ${stepNumber}`}
+                aria-label={`Заменить фотографию ${contextLabel}`}
                 onClick={() => inputRef.current?.click()}
               >
                 <RefreshCw size={17} />
               </ActionButton>
               <ActionButton
                 variant="destructive"
-                aria-label={`Удалить фотографию шага ${stepNumber}`}
+                aria-label={`Удалить фотографию ${contextLabel}`}
                 onClick={() => {
                   setError(undefined);
                   onChange(null);
@@ -109,7 +112,7 @@ export default function StepPhotoEditor({
       ) : (
         <button
           type="button"
-          aria-label={`Добавить фотографию шага ${stepNumber}`}
+          aria-label={`Добавить фотографию ${contextLabel}`}
           aria-describedby={error ? errorId : helpId}
           onClick={() => inputRef.current?.click()}
           className="flex min-h-36 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-muted-foreground/30 bg-secondary/40 p-5 text-muted-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-primary"

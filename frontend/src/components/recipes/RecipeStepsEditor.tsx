@@ -15,7 +15,7 @@ import FormError from "@/components/ui/FormError";
 import Textarea from "@/components/ui/Textarea";
 import type { RecipeEditorStep, RecipeEditorValues } from "@/types/recipe-editor";
 import cn from "@/utils/classname-func";
-import StepPhotoEditor from "./StepPhotoEditor";
+import PhotoEditor from "@/components/ui/PhotoEditor";
 
 interface EditorProps {
   form: UseFormReturn<RecipeEditorValues>;
@@ -134,9 +134,11 @@ function StepRow({ form, id, index, count, onRemove }: StepRowProps) {
         <p className="whitespace-pre-wrap text-sm leading-relaxed [overflow-wrap:anywhere]">{field.value}</p>
       )}
       <FormError id={`step-${id}-error`} message={fieldState.error?.message} />
-      <StepPhotoEditor
+      <PhotoEditor
         key={editing ? "editing" : "preview"}
-        stepNumber={number}
+        contextLabel={`шага ${number}`}
+        downloadName={`step-${number}`}
+        className="mt-3"
         imageUrl={imageUrl.value}
         imageFile={imageFile.value}
         editing={editing}
