@@ -5,7 +5,7 @@ export type RecipeImageInput = { url: string } | { fileKey: string } | null;
 export interface RecipeUpdatePayload {
   title: string;
   description: string;
-  approximateTime: string;
+  prepTimeMinutes: number | null;
   calories: number | null;
   protein: number;
   fat: number;
@@ -33,7 +33,7 @@ export function buildRecipeUpdateRequest(values: RecipeEditorValues) {
   const payload: RecipeUpdatePayload = {
     title: values.title,
     description: values.description,
-    approximateTime: values.approximateTime,
+    prepTimeMinutes: values.prepTimeMinutes ?? null,
     calories: values.calories ?? null,
     protein: values.protein,
     fat: values.fat,

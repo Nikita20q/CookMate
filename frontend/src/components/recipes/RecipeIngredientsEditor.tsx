@@ -40,7 +40,6 @@ function IngredientRow({ form, id, index, count, onRemove }: IngredientRowProps)
   const { field, fieldState } = useController({
     control: form.control,
     name,
-    rules: { validate: (value) => value.trim().length > 0 || "Введите название ингредиента" },
   });
   const [originalTitle, setOriginalTitle] = useState<string | null>(
     () => field.value === "" ? "" : null,
@@ -95,9 +94,8 @@ function IngredientRow({ form, id, index, count, onRemove }: IngredientRowProps)
             autoFocus
             variant="compact"
             aria-label="Название ингредиента"
-            aria-invalid={!!fieldState.error}
-            aria-describedby={fieldState.error ? `ingredient-${id}-error` : undefined}
-            className="flex-1"
+            error={fieldState.error?.message}
+            containerClassName="flex-1"
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
@@ -141,7 +139,7 @@ function IngredientRow({ form, id, index, count, onRemove }: IngredientRowProps)
           </ActionButton>
         </div>
       </div>
-      <FormError id={`ingredient-${id}-error`} message={fieldState.error?.message} />
+      {!editing && <FormError message={fieldState.error?.message} />}
     </li>
   );
 }
@@ -195,6 +193,7 @@ export default function RecipeIngredientsEditor({ form }: EditorProps) {
       {fields.length === 0 && (
         <p className="text-sm text-muted-foreground">В рецепте нет ингредиентов.</p>
       )}
+      <FormError message={form.formState.errors.components?.root?.message} />
       <Button
         variant="secondary"
         className="mt-3 w-full"

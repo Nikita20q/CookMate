@@ -33,7 +33,6 @@ function StepRow({ form, id, index, count, onRemove }: StepRowProps) {
   const { field, fieldState } = useController({
     control: form.control,
     name,
-    rules: { validate: (value) => !!value.trim() || "Введите текст инструкции" },
   });
   const { field: imageUrl } = useController({ control: form.control, name: `steps.${index}.imageUrl` });
   const { field: imageFile } = useController({ control: form.control, name: `steps.${index}.imageFile` });
@@ -118,8 +117,7 @@ function StepRow({ form, id, index, count, onRemove }: StepRowProps) {
           autoFocus
           rows={5}
           aria-label={`Текст шага ${number}`}
-          aria-invalid={!!fieldState.error}
-          aria-describedby={fieldState.error ? `step-${id}-error` : undefined}
+          error={fieldState.error?.message}
           onKeyDown={(event) => {
             if (event.key === "Escape") {
               event.preventDefault();
@@ -133,7 +131,7 @@ function StepRow({ form, id, index, count, onRemove }: StepRowProps) {
       ) : (
         <p className="whitespace-pre-wrap text-sm leading-relaxed [overflow-wrap:anywhere]">{field.value}</p>
       )}
-      <FormError id={`step-${id}-error`} message={fieldState.error?.message} />
+      {!editing && <FormError message={fieldState.error?.message} />}
       <PhotoEditor
         key={editing ? "editing" : "preview"}
         contextLabel={`шага ${number}`}
@@ -191,6 +189,7 @@ export default function RecipeStepsEditor({ form }: EditorProps) {
         </ol>
       </SortableContext>
       {fields.length === 0 && <p className="text-sm text-muted-foreground">В рецепте нет шагов инструкции.</p>}
+      <FormError message={form.formState.errors.steps?.root?.message} />
       <Button
         variant="secondary"
         className="mt-3 w-full"

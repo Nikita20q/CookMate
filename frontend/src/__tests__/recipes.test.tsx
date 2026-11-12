@@ -429,7 +429,7 @@ describe("Детальная страница рецепта", () => {
         initial: detail.description,
         changed: "Новое описание",
       },
-      { label: "Время", initial: detail.approximateTime, changed: "40 минут" },
+      { label: "Время", initial: 15, changed: "40" },
       { label: "Калории", initial: detail.calories!, changed: "500" },
     ];
     for (const field of fields) {

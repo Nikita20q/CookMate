@@ -12,12 +12,14 @@ interface PhotoEditorProps {
   editing: boolean;
   onChange: (file: File | null) => void;
   className?: string;
+  required?: boolean;
+  error?: string;
 }
 
 const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
 
 export default function PhotoEditor({
-  contextLabel, downloadName, imageUrl, imageFile, editing, onChange, className,
+  contextLabel, downloadName, imageUrl, imageFile, editing, onChange, className, required = false, error: validationError,
 }: PhotoEditorProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -25,6 +27,7 @@ export default function PhotoEditor({
   const helpId = useId();
   const errorId = useId();
   const hasPhoto = !!imageUrl || !!imageFile;
+  const message = error ?? validationError;
 
   useEffect(() => {
     if (!imageFile) return;
@@ -54,6 +57,8 @@ export default function PhotoEditor({
           type="file"
           accept="image/*"
           aria-label={`Фотография ${contextLabel}`}
+          aria-invalid={!!message}
+          aria-describedby={message ? errorId : undefined}
           className="hidden"
           onChange={(event) => {
             const file = event.target.files?.[0];
@@ -113,16 +118,17 @@ export default function PhotoEditor({
         <button
           type="button"
           aria-label={`Добавить фотографию ${contextLabel}`}
-          aria-describedby={error ? errorId : helpId}
+          aria-invalid={!!message}
+          aria-describedby={message ? errorId : helpId}
           onClick={() => inputRef.current?.click()}
-          className="flex min-h-36 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-muted-foreground/30 bg-secondary/40 p-5 text-muted-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-primary"
+          className="flex min-h-36 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-muted-foreground/30 bg-secondary/40 p-5 text-muted-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-primary aria-invalid:border-destructive aria-invalid:focus-visible:outline-destructive"
         >
           <ImagePlus size={28} strokeWidth={1.5} />
           <span className="text-sm font-medium">Добавить фотографию</span>
-          <span id={helpId} className="text-xs">Необязательно · одно изображение до 10 МБ</span>
+          <span id={helpId} className="text-xs">{required ? "Одно изображение до 10 МБ" : "Необязательно · одно изображение до 10 МБ"}</span>
         </button>
       )}
-      {editing && <FormError id={errorId} message={error} />}
+      {editing && <FormError id={errorId} message={message} />}
     </div>
   );
 }

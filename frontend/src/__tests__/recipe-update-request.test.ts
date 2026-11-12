@@ -7,6 +7,7 @@ function draft(): RecipeEditorValues {
   return {
     ...detail,
     imageFile: null,
+    prepTimeMinutes: 15,
     components: [{ title: "сыр" }, { title: "яйцо" }],
     steps: [
       { stepTitle: "Жарка", stepInstruction: "Новый текст", imageUrl: "/step.jpg", imageFile: null },
@@ -24,7 +25,7 @@ describe("Тело обновления рецепта", () => {
     expect(payload).toEqual({
       title: "Новый рецепт",
       description: detail.description,
-      approximateTime: detail.approximateTime,
+      prepTimeMinutes: 15,
       calories: null,
       protein: detail.protein,
       fat: detail.fat,

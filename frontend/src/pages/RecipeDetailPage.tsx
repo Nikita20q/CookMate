@@ -4,6 +4,7 @@ import { matchRecipe } from "@/lib/ingredients";
 import { recipesApi } from "@/api/recipes/api";
 import { RECIPES_ENDPOINTS } from "@/api/recipes/endpoints";
 import { buildRecipeUpdateRequest } from "@/api/recipes/update-request";
+import { parseRecipeMinutes, recipeEditorResolver } from "@/lib/recipe-editor-validation";
 import { getApiError } from "@/api/errors";
 import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import Input from "@/components/ui/Input";
@@ -14,7 +15,7 @@ import cn from "@/utils/classname-func";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLoaderData } from "@tanstack/react-router";
 import { ArrowLeft, Clock, Flame, CheckCircle2, Pencil, X } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import { useController, useForm, useWatch } from "react-hook-form";
 import RecipePanels from "@/components/recipes/RecipePanels";
 import RecipeEditActions from "@/components/recipes/RecipeEditActions";
@@ -38,14 +39,16 @@ interface RecipeContent {
 }
 
 export function RecipeDetailPage() {
+  const editorId = useId();
   const { recipeSlug } = useLoaderData({ from: "/recipes/$acronym" });
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [discardRequested, setDiscardRequested] = useState(false);
   const closeDiscardDialog = useCallback(() => setDiscardRequested(false), []);
   const accessToken = useAuthStore((state) => state.accessToken);
   const { canManageRecipes } = useCurrentUser();
-  const form = useForm<RecipeEditorValues>();
+  const form = useForm<RecipeEditorValues>({ resolver: recipeEditorResolver });
   const { register, reset, control, handleSubmit } = form;
+  const { errors, isSubmitted } = form.formState;
   const { field: imageField } = useController({
     control,
     name: "image",
@@ -164,9 +167,13 @@ export function RecipeDetailPage() {
     );
   }
 
-  const content: RecipeContent = recipe.contentJson
+  const parsedContent: Partial<RecipeContent> = recipe.contentJson
     ? JSON.parse(recipe.contentJson)
-    : { steps: [], description: recipe.description };
+    : {};
+  const content: RecipeContent = {
+    steps: parsedContent.steps ?? [],
+    description: parsedContent.description ?? recipe.description,
+  };
 
   const { ingredients, matchedCount, totalCount, matchScore } = matchRecipe(
     {
@@ -180,6 +187,7 @@ export function RecipeDetailPage() {
   const overview = (
     <form
       aria-label={isEditing ? "Черновик рецепта" : undefined}
+      noValidate
       onSubmit={previewSave}
       className={cn("flex min-w-0 flex-col [overflow-wrap:anywhere]", {
         "xl:pb-36": isEditing,
@@ -192,10 +200,13 @@ export function RecipeDetailPage() {
           imageUrl={imageField.value}
           imageFile={imageFileField.value}
           editing
+          required
+          error={errors.image?.message}
           className="p-4"
           onChange={(file) => {
             imageFileField.onChange(file);
             if (!file) imageField.onChange("");
+            if (isSubmitted) void form.trigger("image");
           }}
         />
       ) : (
@@ -213,14 +224,14 @@ export function RecipeDetailPage() {
         <div className="px-7 pt-6 pb-4">
           {isEditing ? (
             <div className="flex flex-col gap-4">
-              <label className="flex flex-col gap-2 text-sm font-medium">
-                Название рецепта
-                <Input {...register("title")} />
-              </label>
-              <label className="flex flex-col gap-2 text-sm font-medium">
-                Описание рецепта
-                <Textarea {...register("description")} rows={5} />
-              </label>
+              <div className="flex flex-col gap-2 text-sm font-medium">
+                <label htmlFor={`${editorId}-title`}>Название рецепта</label>
+                <Input id={`${editorId}-title`} {...register("title")} error={errors.title?.message} />
+              </div>
+              <div className="flex flex-col gap-2 text-sm font-medium">
+                <label htmlFor={`${editorId}-description`}>Описание рецепта</label>
+                <Textarea id={`${editorId}-description`} {...register("description")} error={errors.description?.message} rows={5} />
+              </div>
             </div>
           ) : (
             <>
@@ -239,7 +250,7 @@ export function RecipeDetailPage() {
             {
               icon: <Clock size={16} className="text-primary" />,
               label: "Время",
-              field: "approximateTime" as const,
+              field: "prepTimeMinutes" as const,
               value: recipe.approximateTime,
             },
             {
@@ -252,25 +263,22 @@ export function RecipeDetailPage() {
             <div key={label} className="flex flex-col items-center gap-1">
               {icon}
               {isEditing ? (
-                <label className="flex w-full flex-col items-center gap-1 text-xs text-muted-foreground">
-                  {label}
+                <div className="flex w-full flex-col items-center gap-1 text-xs text-muted-foreground">
+                  <label htmlFor={`${editorId}-${field}`}>{label}</label>
                   <Input
+                    id={`${editorId}-${field}`}
                     variant="compact"
-                    type={field === "calories" ? "number" : "text"}
-                    min={field === "calories" ? 0 : undefined}
-                    step={field === "calories" ? 1 : undefined}
-                    {...register(
-                      field,
-                      field === "calories"
-                        ? {
-                            setValueAs: (value: string) =>
-                              value === "" ? undefined : Number(value),
-                          }
-                        : {},
-                    )}
+                    type="number"
+                    min={field === "calories" ? 0 : 1}
+                    step={1}
+                    suffix={field === "prepTimeMinutes" ? "мин" : undefined}
+                    error={errors[field]?.message}
+                    {...register(field, {
+                      setValueAs: (value: string) => value === "" ? undefined : Number(value),
+                    })}
                     className="text-center"
                   />
-                </label>
+                </div>
               ) : (
                 <>
                   <span className="text-[10px] text-muted-foreground">
@@ -459,8 +467,10 @@ export function RecipeDetailPage() {
                   return;
                 }
                 setDiscardRequested(false);
+                const { approximateTime, ...recipeFields } = recipe;
                 reset({
-                  ...recipe,
+                  ...recipeFields,
+                  prepTimeMinutes: parseRecipeMinutes(approximateTime),
                   imageFile: null,
                   components: recipe.components.map((title) => ({ title })),
                   steps: content.steps.map((step) => ({

@@ -7,7 +7,8 @@ export interface RecipeEditorStep {
   imageFile: File | null;
 }
 
-export type RecipeEditorValues = Omit<RecipeDetail, "components"> & {
+export type RecipeEditorValues = Omit<RecipeDetail, "components" | "approximateTime"> & {
+  prepTimeMinutes?: number;
   imageFile: File | null;
   components: { title: string }[];
   steps: RecipeEditorStep[];
