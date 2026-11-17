@@ -30,7 +30,6 @@ spring:
   servlet:
     multipart:
       max-file-size: 10MB
-      # Allow multipart headers in addition to a 10 MB file.
       max-request-size: 11MB
 
   mail:

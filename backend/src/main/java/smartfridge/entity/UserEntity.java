@@ -31,6 +31,11 @@ public class UserEntity {
     @Builder.Default
     private Boolean emailVerified = false;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    @Builder.Default
+    private UserRole role = UserRole.USER;
+
     @Column(length = 6)
     private String verificationCode;
 

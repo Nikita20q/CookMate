@@ -21,11 +21,17 @@ spring:
               - POST
               - PUT
               - DELETE
+              - PATCH
               - OPTIONS
             allowedHeaders: "*"
             allowCredentials: true
 
       routes:
+        - id: admin-recipes
+          uri: ${BACKEND_SERVICE_URL:http://localhost:8080}
+          predicates:
+            - Path=/api/v1/admin/**
+
         - id: backend-swagger
           uri: ${BACKEND_SERVICE_URL:http://localhost:8080}
           predicates:

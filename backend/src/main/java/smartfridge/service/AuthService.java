@@ -35,6 +35,7 @@ public class AuthService {
 
         UserEntity user = UserEntity.builder()
                 .email(request.getEmail())
+                .role(smartfridge.entity.UserRole.USER)
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .emailVerified(false)
                 .verificationCode(verificationCode)

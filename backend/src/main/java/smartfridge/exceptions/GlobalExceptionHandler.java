@@ -57,6 +57,22 @@ public class GlobalExceptionHandler {
         return buildErrorResponse("Некорректный запрос", "Невозможно прочитать JSON", HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler({org.springframework.dao.OptimisticLockingFailureException.class,
+            jakarta.persistence.OptimisticLockException.class})
+    public ResponseEntity<Map<String, Object>> handleConcurrentUpdate(Exception ex) {
+        return buildErrorResponse("Конфликт", "Рецепт уже изменён. Обновите данные и повторите запрос.", HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleIntegrityConflict(Exception ex) {
+        return buildErrorResponse("Конфликт", "Изменения конфликтуют с существующими данными.", HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidParameter(Exception ex) {
+        return buildErrorResponse("Некорректный запрос", "Неверный формат параметра запроса", HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleAllExceptions(Exception ex) {
         log.error("Непредвиденная ошибка: ", ex);

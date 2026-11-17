@@ -29,6 +29,7 @@ public class RecipeEntity {
     private String imageUrl;
 
     @Column(columnDefinition = "jsonb")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     private String contentJson;
 
     private Integer prepTimeMinutes;
@@ -39,6 +40,15 @@ public class RecipeEntity {
 
     @Column(unique = true, length = 500)
     private String sourceUrl;
+
+    private java.time.LocalDateTime updatedAt;
+
+    @Version
+    private Long version;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean archived = false;
 
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

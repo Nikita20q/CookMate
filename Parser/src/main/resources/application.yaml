@@ -43,3 +43,7 @@ logging:
   level:
     smartfridge.parser: INFO
     org.hibernate.SQL: WARN
+
+security:
+  jwt:
+    secret: ${JWT_SECRET}

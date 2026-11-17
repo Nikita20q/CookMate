@@ -32,6 +32,7 @@ public interface RecipeRepository extends JpaRepository<RecipeEntity, Long> {
         FROM recipe_components rc2
         WHERE rc2.recipe_id = r.id
     ) as totals ON true
+    WHERE r.archived = false
     ORDER BY 
         CASE WHEN matched.match_count = totals.total_count THEN 0 ELSE 1 END ASC,
         matched.match_count DESC,
@@ -42,6 +43,11 @@ public interface RecipeRepository extends JpaRepository<RecipeEntity, Long> {
             @Param("ingredientNames") List<String> ingredientNames,
             @Param("minMatches") int minMatches
     );
+
+    org.springframework.data.domain.Page<RecipeEntity> findByArchived(
+            boolean archived, org.springframework.data.domain.Pageable pageable);
+
+    boolean existsBySlugAndIdNot(String slug, Long id);
 
     Optional<RecipeEntity> findBySlug(String slug);
     boolean existsBySlug(String slug);

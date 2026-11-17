@@ -10,7 +10,9 @@ RUN chmod +x gradlew
 RUN ./gradlew dependencies --no-daemon
 
 COPY src ./src
-RUN ./gradlew bootJar --no-daemon
+RUN test -f src/main/java/smartfridge/CookMateBackendApplication.java \
+    && test -f src/main/resources/application.yml \
+    && ./gradlew bootJar --no-daemon
 
 # Запуск
 FROM eclipse-temurin:17-jre-alpine
