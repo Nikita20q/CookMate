@@ -5,9 +5,10 @@ import { favoritesApi } from "@/api/favorites/api";
 import { recipesApi } from "@/api/recipes/api";
 import { useAuthStore } from "@/store/auth";
 import { detail, recipe, token } from "./fixtures";
-import { renderApp } from "./helpers";
+import { mockRecipeManagement, renderApp } from "./helpers";
 
 beforeEach(() => {
+  mockRecipeManagement();
   useAuthStore.getState().setAccessToken(token());
   vi.spyOn(authApi, "me").mockResolvedValue({ userId: 1, email: "admin@example.com", isStaff: true });
   vi.spyOn(favoritesApi, "getAll").mockResolvedValue({ recipeNumber: 0, recipes: [] });

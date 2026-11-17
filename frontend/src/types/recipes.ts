@@ -11,14 +11,15 @@ export interface Recipe {
 
 export interface RecipeDetail {
   id: number | string;
+  slug?: string;
   title: string;
   image: string;
   components: string[];
   description: string;
   calories?: number;
-  protein: number;
-  fat: number;
-  carbohydrates: number;
+  protein: number | null;
+  fat: number | null;
+  carbohydrates: number | null;
   approximateTime: string;
   contentJson: string;
 }

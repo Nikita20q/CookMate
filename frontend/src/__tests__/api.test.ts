@@ -5,7 +5,7 @@ import { authApi } from "@/api/auth/api";
 import { favoritesApi } from "@/api/favorites/api";
 import { recipesApi } from "@/api/recipes/api";
 import { useAuthStore } from "@/store/auth";
-import { recipe, token } from "./fixtures";
+import { managedFixture, recipe, token } from "./fixtures";
 
 const originalAdapter = apiClient.defaults.adapter;
 let requests: InternalAxiosRequestConfig[];
@@ -30,6 +30,27 @@ afterEach(() => {
 });
 
 describe("Запросы к API", () => {
+  it("обновляет рецепт JSON-запросом по числовому ID и возвращает ManagedRecipeResponse", async () => {
+    useAuthStore.getState().setAccessToken(token());
+    const saved = { ...managedFixture(), version: 8 };
+    apiClient.defaults.adapter = async (config) => {
+      requests.push(config);
+      return { data: saved, status: 200, statusText: "OK", headers: {}, config };
+    };
+    const request = { version: 7, recipe: saved.recipe };
+    expect(await recipesApi.updateRecipe(recipe.id, request)).toEqual(saved);
+    expect(requests).toHaveLength(1);
+    expect(requests[0].url).toBe("/admin/recipes/42");
+    expect(requests[0].method).toBe("put");
+    expect(requests[0].headers.getContentType()).toBe("application/json");
+    expect(requests[0].headers.Authorization).toBe(`Bearer ${token()}`);
+    expect(JSON.parse(requests[0].data)).toEqual(request);
+
+    expect(await recipesApi.getManagedRecipe(recipe.id)).toEqual(saved);
+    expect(requests[1].url).toBe("/admin/recipes/42");
+    expect(requests[1].method).toBe("get");
+  });
+
   it("передаёт токен в /auth/me и завершает сессию при 401", async () => {
     useAuthStore.getState().setAccessToken(token());
     await apiClient.get("/auth/me");

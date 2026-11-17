@@ -1,13 +1,14 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { authApi } from "@/api/auth/api";
 import { favoritesApi } from "@/api/favorites/api";
 import { recipesApi } from "@/api/recipes/api";
 import { useAuthStore } from "@/store/auth";
 import { detail, recipe, token } from "./fixtures";
-import { renderApp } from "./helpers";
+import { mockRecipeManagement, renderApp } from "./helpers";
 
 beforeEach(() => {
+  mockRecipeManagement();
   useAuthStore.getState().setAccessToken(token());
   vi.spyOn(authApi, "me").mockResolvedValue({ userId: 1, email: "admin@example.com", isStaff: true });
   vi.spyOn(favoritesApi, "getAll").mockResolvedValue({ recipeNumber: 0, recipes: [] });
@@ -20,8 +21,8 @@ beforeEach(() => {
 });
 
 describe("Редактор главной фотографии рецепта", () => {
-  it("по сохранению выводит текущий черновик и файлы, не изменяя кеш и не закрывая редактор", async () => {
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+  it("сохраняет черновик и сообщает, что загрузка нового фото требует поддержки сервера", async () => {
+    const save = vi.spyOn(recipesApi, "updateRecipe");
     const { user, client } = await renderApp(`/recipes/${recipe.slug}`);
     await user.click(await screen.findByRole("button", { name: "Редактировать рецепт" }));
     await user.clear(screen.getByLabelText("Название рецепта"));
@@ -33,29 +34,21 @@ describe("Редактор главной фотографии рецепта", 
     await user.type(screen.getByLabelText("Текст шага 1"), "Новая инструкция");
     await user.click(screen.getByRole("button", { name: "Сохранить" }));
 
-    await waitFor(() => expect(log).toHaveBeenCalledWith("Recipe update request", expect.objectContaining({
-      method: "PUT",
-      url: `/recipes/recipe/${recipe.slug}`,
-      body: expect.objectContaining({
-        title: "Обновлённый омлет",
-        image: { fileKey: "recipeImage" },
-        steps: expect.arrayContaining([expect.objectContaining({ num: 1, stepInstruction: "Новая инструкция" })]),
-      }),
-      files: { recipeImage: photo },
-      formData: expect.any(FormData),
-    })));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Сервер пока не поддерживает загрузку новых фотографий");
+    expect(save).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Название рецепта")).toHaveValue("Обновлённый омлет");
     expect(client.getQueryData(["recipes", recipe.slug])).toEqual(detail);
     expect(screen.getByRole("form", { name: "Черновик рецепта" })).toBeVisible();
   });
 
-  it("не выводит запрос, пока в новом шаге не введён текст", async () => {
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+  it("не отправляет запрос, пока в новом шаге не введён текст", async () => {
+    const save = vi.spyOn(recipesApi, "updateRecipe");
     const { user } = await renderApp(`/recipes/${recipe.slug}`);
     await user.click(await screen.findByRole("button", { name: "Редактировать рецепт" }));
     await user.click(screen.getByRole("button", { name: "Добавить шаг" }));
     await user.click(screen.getByRole("button", { name: "Сохранить" }));
     expect(await screen.findByText("Введите текст инструкции")).toBeVisible();
-    expect(log).not.toHaveBeenCalled();
+    expect(save).not.toHaveBeenCalled();
   });
 
   it("показывает действия в режиме редактирования и восстанавливает удалённое фото при отмене", async () => {

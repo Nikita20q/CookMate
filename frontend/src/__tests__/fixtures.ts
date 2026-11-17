@@ -1,4 +1,5 @@
 import type { Recipe, RecipeDetail } from "@/types/recipes";
+import type { ManagedRecipeResponse } from "@/api/recipes/management";
 
 export const token = (id = "1", exp = 4_000_000_000) =>
   `header.${btoa(JSON.stringify({ sub: id, exp }))}.signature`;
@@ -52,3 +53,22 @@ export const authResponse = {
   email: "cook@example.com",
   message: "Успешно",
 };
+
+export function managedFixture(source: RecipeDetail = detail): ManagedRecipeResponse {
+  const content = JSON.parse(source.contentJson || "{}");
+  return {
+    id: Number(source.id), version: 7, archived: false,
+    recipe: {
+      title: source.title, slug: source.slug ?? recipe.slug,
+      description: content.description ?? source.description,
+      imageUrl: source.image || null,
+      prepTimeMinutes: Number.parseInt(source.approximateTime) || null,
+      calories: source.calories ?? null,
+      protein: source.protein, fat: source.fat, carbohydrates: source.carbohydrates,
+      ingredients: source.components.map((name, index) => ({ name, count: index === 0 ? 2 : 50, measurement: index === 0 ? "шт." : "г" })),
+      steps: (content.steps ?? []).map((step: { stepInstruction: string; stepTitle: string; imageUrl: string }) => ({
+        text: step.stepInstruction, title: step.stepTitle, imageUrl: step.imageUrl || null,
+      })),
+    },
+  };
+}

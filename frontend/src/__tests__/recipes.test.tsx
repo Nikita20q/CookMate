@@ -7,11 +7,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { recipesApi } from "@/api/recipes/api";
 import { useIngredientsStore } from "@/store/ingredients";
 import { detail, recipe, secondRecipe, token } from "./fixtures";
-import { deferred, renderApp } from "./helpers";
+import { deferred, mockRecipeManagement, renderApp } from "./helpers";
 import type { RecognizeResponse } from "@/api/recipes/types";
 import type { RecipeDetail } from "@/types/recipes";
 
 beforeEach(() => {
+  mockRecipeManagement();
   vi.spyOn(recipesApi, "findByIngredients").mockResolvedValue({
     recipeCount: 1,
     recipes: [recipe],

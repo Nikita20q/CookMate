@@ -31,20 +31,34 @@ export const recipeEditorResolver: Resolver<RecipeEditorValues> = (values) => {
   }
 
   if (!values.image?.trim() && !values.imageFile) errors.image = error("Добавьте главную фотографию рецепта");
+  if ((values.description?.length ?? 0) > 20000) errors.description = error("Описание не должно превышать 20000 символов");
 
   if (!values.components?.length) errors.components = { root: error("Добавьте хотя бы один ингредиент") };
+  else if (values.components.length > 100) errors.components = { root: error("Допустимо не более 100 ингредиентов") };
+  const names = new Set<string>();
   values.components?.forEach((ingredient, index) => {
-    if (!ingredient.title.trim()) {
+    const name = ingredient.title.trim().replace(/\s+/g, " ");
+    const ingredientErrors: { title?: FieldError } = {};
+    if (!name) ingredientErrors.title = error("Введите название ингредиента");
+    else if (name.length > 100) ingredientErrors.title = error("Название ингредиента не должно превышать 100 символов");
+    else if (names.has(name.toLowerCase())) ingredientErrors.title = error("Ингредиенты не должны повторяться");
+    names.add(name.toLowerCase());
+    if (Object.keys(ingredientErrors).length) {
       errors.components ??= {};
-      errors.components[index] = { title: error("Введите название ингредиента") };
+      errors.components[index] = ingredientErrors;
     }
   });
 
   if (!values.steps?.length) errors.steps = { root: error("Добавьте хотя бы один шаг инструкции") };
+  else if (values.steps.length > 100) errors.steps = { root: error("Допустимо не более 100 шагов") };
   values.steps?.forEach((step, index) => {
     if (!step.stepInstruction.trim()) {
       errors.steps ??= {};
       errors.steps[index] = { stepInstruction: error("Введите текст инструкции") };
+    }
+    if (step.stepInstruction.length > 10000 || step.stepTitle.length > 255) {
+      errors.steps ??= {};
+      errors.steps[index] = { stepInstruction: error("Текст шага — до 10000 символов, заголовок — до 255") };
     }
   });
 
