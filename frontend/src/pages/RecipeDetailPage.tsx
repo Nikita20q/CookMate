@@ -3,7 +3,7 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { matchRecipe } from "@/lib/ingredients";
 import { recipesApi } from "@/api/recipes/api";
 import { buildRecipeUpdateRequest } from "@/api/recipes/update-request";
-import { managedRecipeToDetail, managedRecipeToEditor, type ManagedRecipeResponse } from "@/api/recipes/management";
+import { managedRecipeKey, managedRecipeToDetail, managedRecipeToEditor, type ManagedRecipeResponse } from "@/api/recipes/management";
 import { recipeEditorResolver } from "@/lib/recipe-editor-validation";
 import { getApiError } from "@/api/errors";
 import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
@@ -27,6 +27,7 @@ import { useAuthStore } from "@/store/auth";
 import type { RecipeEditorValues } from "@/types/recipe-editor";
 import type { Recipe, RecipeDetail } from "@/types/recipes";
 import FormError from "@/components/ui/FormError";
+import ArchiveRecipeButton from "@/components/recipes/ArchiveRecipeButton";
 
 interface Step {
   num: number;
@@ -46,6 +47,7 @@ export function RecipeDetailPage() {
   const { recipeSlug } = useLoaderData({ from: "/recipes/$acronym" });
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [discardRequested, setDiscardRequested] = useState(false);
+  const [archivePending, setArchivePending] = useState(false);
   const closeDiscardDialog = useCallback(() => setDiscardRequested(false), []);
   const accessToken = useAuthStore((state) => state.accessToken);
   const activeContext = useRef({ recipeSlug, accessToken });
@@ -85,6 +87,7 @@ export function RecipeDetailPage() {
     mutationFn: ({ id }: { id: RecipeDetail["id"]; recipeSlug: string; accessToken: string }) => recipesApi.getManagedRecipe(id),
     onSuccess: (managedRecipe, context) => {
       if (activeContext.current.recipeSlug !== context.recipeSlug || activeContext.current.accessToken !== context.accessToken) return;
+      queryClient.setQueryData(managedRecipeKey(context.accessToken, managedRecipe.id), managedRecipe);
       reset(managedRecipeToEditor(managedRecipe));
       setEditingContext({ ...context, managedRecipe });
       setDiscardRequested(false);
@@ -103,6 +106,9 @@ export function RecipeDetailPage() {
           ((queryKey[0] === "recipes" || queryKey[0] === "favorites") && !!state.data && typeof state.data === "object" && "recipes" in state.data),
       });
       const updated = managedRecipeToDetail(managedRecipe);
+      if (activeContext.current.accessToken === context.accessToken) {
+        queryClient.setQueryData(managedRecipeKey(context.accessToken, managedRecipe.id), managedRecipe);
+      }
       queryClient.setQueryData(["recipes", managedRecipe.recipe.slug], updated);
       queryClient.setQueriesData<{ recipes: Recipe[] }>({
         predicate: ({ queryKey, state }) => (queryKey[0] === "recipes" || queryKey[0] === "favorites") &&
@@ -518,7 +524,7 @@ export function RecipeDetailPage() {
             <Button
               variant={isEditing ? "outline" : "primary"}
               type="button"
-              disabled={loadEditorMutation.isPending || updateRecipeMutation.isPending}
+              disabled={loadEditorMutation.isPending || updateRecipeMutation.isPending || archivePending}
               aria-pressed={isEditing}
               onClick={() => {
                 if (!canManageRecipes || !accessToken) return;
@@ -541,6 +547,14 @@ export function RecipeDetailPage() {
                 </>
               )}
             </Button>
+          )}
+          {canManageRecipes && (
+            <ArchiveRecipeButton
+              key={`${accessToken}:${recipe.id}`}
+              recipe={recipe}
+              disabled={isEditing || loadEditorMutation.isPending || updateRecipeMutation.isPending}
+              onPendingChange={setArchivePending}
+            />
           )}
           <span className="bg-secondary text-foreground font-semibold text-sm px-3 py-1.5 rounded-full">
             {matchScore}% совпадение

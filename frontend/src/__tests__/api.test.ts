@@ -30,6 +30,24 @@ afterEach(() => {
 });
 
 describe("Запросы к API", () => {
+  it("архивирует через PATCH с версией и запрашивает архив с пагинацией", async () => {
+    useAuthStore.getState().setAccessToken(token());
+    const saved = { ...managedFixture(), version: 8, archived: true };
+    const page = { recipes: [saved], page: 1, size: 20, total: 21 };
+    apiClient.defaults.adapter = async (config) => {
+      requests.push(config);
+      return { data: config.method === "patch" ? saved : page, status: 200, statusText: "OK", headers: {}, config };
+    };
+    expect(await recipesApi.setRecipeStatus(42, { version: 7, archived: true })).toEqual(saved);
+    expect(requests[0].method).toBe("patch");
+    expect(requests[0].url).toBe("/admin/recipes/42/status");
+    expect(requests[0].headers.Authorization).toBe(`Bearer ${token()}`);
+    expect(JSON.parse(requests[0].data)).toEqual({ version: 7, archived: true });
+    expect(await recipesApi.getArchivedRecipes(1, 20)).toEqual(page);
+    expect(requests[1].url).toBe("/admin/recipes");
+    expect(requests[1].params).toEqual({ archived: true, page: 1, size: 20 });
+  });
+
   it("обновляет рецепт JSON-запросом по числовому ID и возвращает ManagedRecipeResponse", async () => {
     useAuthStore.getState().setAccessToken(token());
     const saved = { ...managedFixture(), version: 8 };

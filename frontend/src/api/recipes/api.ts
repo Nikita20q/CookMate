@@ -2,7 +2,7 @@ import type { RecognizeResponse, SearchHistoryResponse } from "./types";
 import apiClient from "../apiClient";
 import { RECIPES_ENDPOINTS } from "./endpoints";
 import type { RecipeDetail } from "@/types/recipes";
-import type { ManagedRecipeResponse, RecipeUpdateRequest } from "./management";
+import type { ManagedRecipePage, ManagedRecipeResponse, RecipeStatusRequest, RecipeUpdateRequest } from "./management";
 
 export const recipesApi = {
   getSearchHistory: async (): Promise<SearchHistoryResponse> => {
@@ -51,5 +51,13 @@ export const recipesApi = {
     request: RecipeUpdateRequest,
   ): Promise<ManagedRecipeResponse> => {
     return apiClient.put(RECIPES_ENDPOINTS.updateRecipe(recipeId), request);
+  },
+
+  setRecipeStatus: (recipeId: RecipeDetail["id"], request: RecipeStatusRequest): Promise<ManagedRecipeResponse> => {
+    return apiClient.patch(RECIPES_ENDPOINTS.recipeStatus(recipeId), request);
+  },
+
+  getArchivedRecipes: (page = 0, size = 20): Promise<ManagedRecipePage> => {
+    return apiClient.get(RECIPES_ENDPOINTS.managedRecipes, { params: { archived: true, page, size } });
   },
 };

@@ -27,6 +27,24 @@ export interface RecipeUpdateRequest {
   recipe: RecipeWriteRequest;
 }
 
+export interface RecipeStatusRequest {
+  version: number;
+  archived: boolean;
+}
+
+export interface ManagedRecipePage {
+  recipes: ManagedRecipeResponse[];
+  page: number;
+  size: number;
+  total: number;
+}
+
+export const managedRecipeKey = (accessToken: string | null, id: RecipeDetail["id"]) =>
+  ["admin-recipes", accessToken, "detail", String(id)] as const;
+
+export const archivedRecipesKey = (accessToken: string | null) =>
+  ["admin-recipes", accessToken, "archived"] as const;
+
 export function managedRecipeToDetail({
   id,
   recipe,

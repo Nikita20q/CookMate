@@ -92,7 +92,7 @@ describe("Сохранение рецепта", () => {
     vi.mocked(recipesApi.getManagedRecipe).mockRejectedValue(new Error("Не удалось получить версию рецепта"));
     const { user } = await renderApp(`/recipes/${recipe.slug}`);
     await user.click(await screen.findByRole("button", { name: "Редактировать рецепт" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Не удалось получить версию рецепта");
+    expect(await screen.findByText("Не удалось получить версию рецепта", { exact: true })).toHaveAttribute("role", "alert");
     expect(screen.queryByRole("form", { name: "Черновик рецепта" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: detail.title })).toBeVisible();
   });
