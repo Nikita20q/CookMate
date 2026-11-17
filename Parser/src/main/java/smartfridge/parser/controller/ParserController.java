@@ -1,6 +1,7 @@
 package smartfridge.parser.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +12,7 @@ import smartfridge.parser.services.ParserService;
 @RequestMapping("/api/v1/parser")
 @RequiredArgsConstructor
 @Tag(name = "Парсер", description = "API для запуска парсинга рецептов")
+@SecurityRequirement(name = "bearerAuth")
 public class ParserController {
 
     private final ParserService parserService;
