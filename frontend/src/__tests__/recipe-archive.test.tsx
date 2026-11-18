@@ -42,7 +42,8 @@ describe("Архивирование рецепта", () => {
     expect(screen.getByRole("button", { name: "Редактировать рецепт" })).toBeDisabled();
     expect(client.getQueryData(["recipes", "яйцо"])).toMatchObject({ recipeCount: 2 });
     await act(async () => response.resolve(archivedRecipe));
-    expect(await screen.findByText("Рецепт в архиве")).toBeVisible();
+    expect(await screen.findByRole("button", { name: "Вернуть из архива" })).toBeVisible();
+    expect(screen.queryByText("Рецепт в архиве")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Архивировать рецепт" })).not.toBeInTheDocument();
     expect(client.getQueryData(["recipes", "яйцо"])).toMatchObject({ recipeCount: 1, recipes: [secondRecipe] });
     expect(useIngredientsStore.getState().recognitionResult).toMatchObject({ recipeCount: 1, recipes: [secondRecipe] });
@@ -136,7 +137,8 @@ describe("Список архивов", () => {
     vi.mocked(recipesApi.getManagedRecipe).mockResolvedValue({ ...archivedRecipe, id: 43, recipe: { ...archivedRecipe.recipe, title: secondRecipe.title, slug: secondRecipe.slug } });
     await user.click(screen.getByRole("link", { name: `Открыть рецепт ${secondRecipe.title}` }));
     await waitFor(() => expect(router.state.location.pathname).toBe(`/recipes/${secondRecipe.slug}`));
-    expect(await screen.findByText("Рецепт в архиве")).toBeVisible();
+    expect(await screen.findByRole("button", { name: "Вернуть из архива" })).toBeVisible();
+    expect(screen.queryByText("Рецепт в архиве")).not.toBeInTheDocument();
   });
 
   it.each(["guest", "user"])("не запрашивает архив при прямом переходе для %s", async (role) => {

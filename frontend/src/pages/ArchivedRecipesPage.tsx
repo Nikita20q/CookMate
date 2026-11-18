@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Archive, ArrowLeft, ArrowRight, LoaderCircle } from "lucide-react";
 import { recipesApi } from "@/api/recipes/api";
-import { archivedRecipesKey } from "@/api/recipes/management";
+import { archivedRecipesKey, managedRecipeToDetail } from "@/api/recipes/management";
+import ArchiveRecipeButton from "@/components/recipes/ArchiveRecipeButton";
 import { getApiError } from "@/api/errors";
 import Button from "@/components/ui/Button";
 import ButtonLink from "@/components/ui/ButtonLink";
@@ -22,6 +23,8 @@ export default function ArchivedRecipesPage() {
     enabled: profile.canManageRecipes,
     retry: false,
   });
+  const lastPage = archive.data ? Math.max(0, Math.ceil(archive.data.total / PAGE_SIZE) - 1) : page;
+  if (page > lastPage) setPage(lastPage);
 
   const header = (
     <header className="mb-8 flex items-center gap-3">
@@ -50,16 +53,20 @@ export default function ArchivedRecipesPage() {
         <p className="mb-5 text-sm text-muted-foreground">В архиве: {archive.data.total}</p>
         {archive.data.recipes.length ? (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {archive.data.recipes.map(({ id, recipe }) => (
+            {archive.data.recipes.map((managedRecipe) => {
+              const { id, recipe } = managedRecipe;
+              return (
               <article key={id} className="flex min-w-0 flex-col overflow-hidden rounded-2xl border bg-card">
                 <ImageWithFallback src={recipe.imageUrl ?? undefined} alt={recipe.title} className="h-44 w-full object-cover" />
                 <div className="flex flex-1 flex-col gap-3 p-5">
                   <h2 className="font-serif text-xl font-semibold [overflow-wrap:anywhere]">{recipe.title}</h2>
                   <p className="line-clamp-3 text-sm text-muted-foreground">{recipe.description || "Без описания"}</p>
                   <ButtonLink to="/recipes/$acronym" params={{ acronym: recipe.slug }} variant="secondary" className="mt-auto" aria-label={`Открыть рецепт ${recipe.title}`}>Открыть рецепт</ButtonLink>
+                  <ArchiveRecipeButton recipe={managedRecipeToDetail(managedRecipe)} initialData={managedRecipe} />
                 </div>
               </article>
-            ))}
+              );
+            })}
           </div>
         ) : <p className="rounded-2xl border bg-card px-6 py-16 text-center text-muted-foreground">В архиве пока нет рецептов.</p>}
         {totalPages > 1 && (
