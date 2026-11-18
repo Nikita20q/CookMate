@@ -13,6 +13,7 @@ import ActionButton from "@/components/ui/ActionButton";
 import Button from "@/components/ui/Button";
 import FormError from "@/components/ui/FormError";
 import Textarea from "@/components/ui/Textarea";
+import Input from "@/components/ui/Input";
 import type { RecipeEditorStep, RecipeEditorValues } from "@/types/recipe-editor";
 import cn from "@/utils/classname-func";
 import PhotoEditor from "@/components/ui/PhotoEditor";
@@ -35,6 +36,7 @@ function StepRow({ form, id, index, count, onRemove }: StepRowProps) {
     name,
   });
   const { field: imageUrl } = useController({ control: form.control, name: `steps.${index}.imageUrl` });
+  const title = useController({ control: form.control, name: `steps.${index}.stepTitle` });
   const { field: imageFile } = useController({ control: form.control, name: `steps.${index}.imageFile` });
   const [original, setOriginal] = useState<RecipeEditorStep | null>(() =>
     field.value === "" ? { ...form.getValues(`steps.${index}`) } : null,
@@ -46,21 +48,23 @@ function StepRow({ form, id, index, count, onRemove }: StepRowProps) {
   const number = index + 1;
 
   const finishEditing = async () => {
-    if (!await form.trigger(name)) return;
+    if (!await form.trigger([name, `steps.${index}.stepTitle`])) return;
     field.onChange(field.value.trim());
+    title.field.onChange(title.field.value.trim());
     setOriginal(null);
   };
 
   const cancelEditing = () => {
     if (!original) return;
-    if (!original.stepInstruction && !original.imageUrl && !original.imageFile) {
+    if (!original.stepInstruction && !original.stepTitle && !original.imageUrl && !original.imageFile) {
       onRemove();
       return;
     }
     field.onChange(original.stepInstruction);
+    title.field.onChange(original.stepTitle);
     imageUrl.onChange(original.imageUrl);
     imageFile.onChange(original.imageFile);
-    form.clearErrors(name);
+    form.clearErrors(`steps.${index}`);
     setOriginal(null);
   };
 
@@ -112,12 +116,8 @@ function StepRow({ form, id, index, count, onRemove }: StepRowProps) {
       </div>
 
       {editing ? (
-        <Textarea
-          {...field}
-          autoFocus
-          rows={5}
-          aria-label={`Текст шага ${number}`}
-          error={fieldState.error?.message}
+        <div
+          className="space-y-3"
           onKeyDown={(event) => {
             if (event.key === "Escape") {
               event.preventDefault();
@@ -127,9 +127,29 @@ function StepRow({ form, id, index, count, onRemove }: StepRowProps) {
               void finishEditing();
             }
           }}
-        />
+        >
+          <div className="space-y-1">
+            <label htmlFor={`${id}-title`} className="text-xs text-muted-foreground">Заголовок шага {number}</label>
+            <Input
+              {...title.field}
+              id={`${id}-title`}
+              placeholder="Необязательно"
+              error={title.fieldState.error?.message}
+            />
+          </div>
+          <Textarea
+            {...field}
+            autoFocus
+            rows={5}
+            aria-label={`Текст шага ${number}`}
+            error={fieldState.error?.message}
+          />
+        </div>
       ) : (
-        <p className="whitespace-pre-wrap text-sm leading-relaxed [overflow-wrap:anywhere]">{field.value}</p>
+        <>
+          {title.field.value && <p className="mb-2 text-sm font-semibold">{title.field.value}</p>}
+          <p className="whitespace-pre-wrap text-sm leading-relaxed [overflow-wrap:anywhere]">{field.value}</p>
+        </>
       )}
       {!editing && <FormError message={fieldState.error?.message} />}
       <PhotoEditor

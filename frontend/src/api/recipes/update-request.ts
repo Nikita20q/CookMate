@@ -20,17 +20,16 @@ export function buildRecipeUpdateRequest(
       imageUrl: values.image || null,
       prepTimeMinutes: values.prepTimeMinutes ?? null,
       calories: values.calories ?? null,
-      protein: values.protein,
-      fat: values.fat,
-      carbohydrates: values.carbohydrates,
-      // Temporary defaults while the parser does not supply quantities or units.
-      ingredients: values.components.map(({ title }) => ({
+      protein: values.protein ?? null,
+      fat: values.fat ?? null,
+      carbohydrates: values.carbohydrates ?? null,
+      ingredients: values.components.map(({ title, quantity, measurement }) => ({
         name: title,
-        count: 1,
-        measurement: "шт",
+        count: quantity ?? null,
+        measurement: measurement?.trim() || "по вкусу",
       })),
       steps: values.steps.map((step) => ({
-        title: step.stepTitle || null,
+        title: step.stepTitle.trim() || null,
         text: step.stepInstruction,
         imageUrl: step.imageUrl || null,
       })),

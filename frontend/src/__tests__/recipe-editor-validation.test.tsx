@@ -69,7 +69,6 @@ describe("Валидация редактора рецепта", () => {
     expect(screen.getByRole("button", { name: "Добавить фотографию рецепта" })).toHaveAccessibleDescription("Добавьте главную фотографию рецепта");
     expect(screen.getByText("Добавьте хотя бы один ингредиент")).toBeVisible();
     expect(screen.getByText("Добавьте хотя бы один шаг инструкции")).toBeVisible();
-    expect(screen.queryByText(/Необязательно/)).not.toBeInTheDocument();
     expect(save).not.toHaveBeenCalled();
 
     await user.clear(screen.getByLabelText("Название рецепта"));
@@ -112,5 +111,56 @@ describe("Валидация редактора рецепта", () => {
     expect(await screen.findByText("Название не должно превышать 255 символов")).toBeVisible();
     expect(screen.getByLabelText("Время")).toHaveAccessibleDescription("мин Укажите целое количество минут от 1 до 2147483647");
     expect(save).not.toHaveBeenCalled();
+  });
+
+  it.each([null, 0, 1.25])("позволяет необязательное количество %s и пустую единицу", async (quantity) => {
+    const save = vi.spyOn(recipesApi, "updateRecipe").mockResolvedValue({ ...managedFixture(), version: 8 });
+    const { user } = await renderApp(`/recipes/${recipe.slug}`);
+    await user.click(await screen.findByRole("button", { name: "Редактировать рецепт" }));
+    const count = screen.getByLabelText("Количество ингредиента яйцо");
+    const unit = screen.getByLabelText("Единица измерения ингредиента яйцо");
+    expect(count).not.toBeRequired();
+    expect(unit).not.toBeRequired();
+    await user.clear(count);
+    if (quantity !== null) await user.type(count, String(quantity));
+    await user.clear(unit);
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith(recipe.id, expect.objectContaining({
+      recipe: expect.objectContaining({ ingredients: [
+        { name: "яйцо", count: quantity, measurement: "по вкусу" },
+        { name: "сыр", count: 50, measurement: "г" },
+      ] }),
+    })));
+  });
+
+  it("отклоняет отрицательное количество и единицу длиннее ограничения DTO", async () => {
+    const save = vi.spyOn(recipesApi, "updateRecipe").mockResolvedValue({ ...managedFixture(), version: 8 });
+    const { user } = await renderApp(`/recipes/${recipe.slug}`);
+    await user.click(await screen.findByRole("button", { name: "Редактировать рецепт" }));
+    await user.clear(screen.getByLabelText("Количество ингредиента яйцо"));
+    await user.type(screen.getByLabelText("Количество ингредиента яйцо"), "-0.5");
+    await user.clear(screen.getByLabelText("Единица измерения ингредиента яйцо"));
+    await user.click(screen.getByLabelText("Единица измерения ингредиента яйцо"));
+    await user.paste("г".repeat(101));
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
+    expect(await screen.findByText("Количество должно быть неотрицательным числом")).toBeVisible();
+    expect(screen.getByText("Единица измерения не должна превышать 100 символов")).toBeVisible();
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it("разрешает повторяющиеся ингредиенты с разными количествами", async () => {
+    const save = vi.spyOn(recipesApi, "updateRecipe").mockResolvedValue({ ...managedFixture(), version: 8 });
+    const { user } = await renderApp(`/recipes/${recipe.slug}`);
+    await user.click(await screen.findByRole("button", { name: "Редактировать рецепт" }));
+    await user.click(screen.getByRole("button", { name: "Добавить ингредиент" }));
+    await user.type(screen.getByLabelText("Название ингредиента"), "яйцо{Enter}");
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith(recipe.id, expect.objectContaining({
+      recipe: expect.objectContaining({ ingredients: [
+        { name: "яйцо", count: 2, measurement: "шт." },
+        { name: "сыр", count: 50, measurement: "г" },
+        { name: "яйцо", count: null, measurement: "по вкусу" },
+      ] }),
+    })));
   });
 });

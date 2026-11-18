@@ -7,9 +7,15 @@ export interface RecipeEditorStep {
   imageFile: File | null;
 }
 
+export interface RecipeEditorIngredient {
+  title: string;
+  quantity?: number | null;
+  measurement?: string;
+}
+
 export type RecipeEditorValues = Omit<RecipeDetail, "components" | "approximateTime"> & {
   prepTimeMinutes?: number;
   imageFile: File | null;
-  components: { title: string }[];
+  components: RecipeEditorIngredient[];
   steps: RecipeEditorStep[];
 };

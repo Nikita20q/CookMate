@@ -1,6 +1,7 @@
 import Button from "@/components/ui/Button";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import { matchRecipe } from "@/lib/ingredients";
+import { matchRecipe, normalizeIngredient } from "@/lib/ingredients";
+import { getRecipeIngredients } from "@/lib/recipe-ingredients";
 import { recipesApi } from "@/api/recipes/api";
 import { buildRecipeUpdateRequest } from "@/api/recipes/update-request";
 import { managedRecipeKey, managedRecipeToDetail, managedRecipeToEditor, type ManagedRecipeResponse } from "@/api/recipes/management";
@@ -16,7 +17,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLoaderData } from "@tanstack/react-router";
 import { ArrowLeft, Clock, Flame, CheckCircle2, Pencil, X } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { useController, useForm, useWatch } from "react-hook-form";
+import { useController, useForm, useWatch, type UseFormReturn } from "react-hook-form";
 import RecipePanels from "@/components/recipes/RecipePanels";
 import RecipeEditActions from "@/components/recipes/RecipeEditActions";
 import RecipeIngredientsEditor from "@/components/recipes/RecipeIngredientsEditor";
@@ -39,6 +40,36 @@ interface Step {
 interface RecipeContent {
   steps: Step[];
   description: string;
+}
+
+const nutrients = [
+  { field: "protein", label: "Белки" },
+  { field: "fat", label: "Жиры" },
+  { field: "carbohydrates", label: "Углеводы" },
+] as const;
+
+function NutrientInput({ form, name, id }: {
+  form: UseFormReturn<RecipeEditorValues>;
+  name: "protein" | "fat" | "carbohydrates";
+  id: string;
+}) {
+  const { field, fieldState } = useController({ control: form.control, name, defaultValue: null });
+  return (
+    <Input
+      {...field}
+      id={id}
+      type="number"
+      min={0}
+      step={1}
+      variant="compact"
+      suffix="г"
+      placeholder="Не указано"
+      value={field.value ?? ""}
+      onChange={(event) => field.onChange(event.target.value === "" ? null : Number(event.target.value))}
+      error={fieldState.error?.message}
+      className="text-center"
+    />
+  );
 }
 
 export function RecipeDetailPage() {
@@ -224,14 +255,16 @@ export function RecipeDetailPage() {
     description: parsedContent.description ?? recipe.description,
   };
 
+  const recipeIngredients = getRecipeIngredients(recipe);
   const { ingredients, matchedCount, totalCount, matchScore } = matchRecipe(
     {
       components: isEditing
         ? draftIngredients.map((ingredient) => ingredient.title)
-        : recipe.components,
+        : recipeIngredients.map(({ name }) => name),
     },
     currentIngredients,
   );
+  const availableIngredients = new Set(ingredients.filter(({ available }) => available).map(({ key }) => key));
 
   const overview = (
     <form
@@ -318,7 +351,7 @@ export function RecipeDetailPage() {
                 icon: <Flame size={16} className="text-accent" />,
                 label: "Калории",
                 field: "calories" as const,
-                value: `${recipe.calories}`,
+                value: recipe.calories == null ? "Не указано" : `${recipe.calories}`,
               },
             ].map(({ icon, label, value, field }) => (
               <div key={label} className="flex flex-col items-center gap-1">
@@ -355,6 +388,32 @@ export function RecipeDetailPage() {
             ))}
           </div>
 
+          <div className="mx-7 mb-6 min-w-0 rounded-xl bg-secondary p-4" role="group" aria-label="Пищевая ценность">
+            <p className="mb-3 text-sm font-medium">Пищевая ценность</p>
+            <div className={cn("grid gap-3", isEditing ? "grid-cols-[repeat(auto-fit,minmax(min(100%,10rem),1fr))]" : "grid-cols-3")}>
+              {nutrients.map(({ field, label }) => (
+                <div key={field} className="min-w-0 space-y-1 text-center">
+                  {isEditing ? (
+                    <>
+                      <label htmlFor={`${editorId}-${field}`} className="text-xs text-muted-foreground">{label}</label>
+                      <NutrientInput
+                        form={form}
+                        name={field}
+                        id={`${editorId}-${field}`}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs text-muted-foreground">{label}</p>
+                      <p className="text-sm font-semibold">{recipe[field] == null ? "Не указано" : `${recipe[field]} г`}</p>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+            {isEditing && <p className="mt-3 text-xs text-muted-foreground">Необязательные поля. Укажите целые значения в граммах.</p>}
+          </div>
+
           <div className="px-7 pb-8">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-['Lora',serif] text-lg font-semibold text-foreground">
@@ -369,10 +428,12 @@ export function RecipeDetailPage() {
               <RecipeIngredientsEditor form={form} />
             ) : (
               <div className="flex flex-col gap-2">
-                {ingredients.map(({ key, title, available: isInPantry }) => {
+                {recipeIngredients.map(({ name, count, measurement }, index) => {
+                  const isInPantry = availableIngredients.has(normalizeIngredient(name));
+                  const amount = [count, measurement?.trim()].filter((value) => value != null && value !== "").join(" ");
                   return (
                     <div
-                      key={key}
+                      key={index}
                       className={cn(
                         "flex items-center justify-between px-4 py-2.5 rounded-xl border transition-colors",
                         isInPantry
@@ -387,8 +448,9 @@ export function RecipeDetailPage() {
                             isInPantry ? "bg-primary" : "bg-muted-foreground",
                           )}
                         />
-                        <span className="text-sm text-foreground">{title}</span>
+                        <span className="text-sm text-foreground">{name}</span>
                       </div>
+                      {amount && <span className="ml-auto px-2 text-sm text-muted-foreground">{amount}</span>}
                       {!isInPantry && (
                         <span className="px-2 py-0.5 rounded-full bg-secondary text-[10px] text-muted-foreground">
                           купить
@@ -452,6 +514,7 @@ export function RecipeDetailPage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
+                      {step.stepTitle && <h3 className="mb-2 text-sm font-semibold">{step.stepTitle}</h3>}
                       <p
                         className={cn(
                           "text-sm leading-relaxed",

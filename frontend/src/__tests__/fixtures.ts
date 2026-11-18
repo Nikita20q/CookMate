@@ -9,7 +9,7 @@ export const recipe: Recipe = {
   title: "Омлет с сыром",
   slug: "omlet-s-syrom",
   description: "Простой завтрак из яиц и сыра",
-  image: "/omlet.jpg",
+  image: "https://images.example.com/omlet.jpg",
   calories: 240,
   approximateTime: "15 минут",
   components: ["яйцо", "сыр"],
@@ -24,7 +24,7 @@ export const secondRecipe: Recipe = {
 
 export const detail: RecipeDetail = {
   ...recipe,
-  image: "/omlet.jpg",
+  image: "https://images.example.com/omlet.jpg",
   protein: 15,
   fat: 20,
   carbohydrates: 3,
@@ -39,7 +39,7 @@ export const detail: RecipeDetail = {
       },
       {
         num: 2,
-        imageUrl: "/step.jpg",
+        imageUrl: "https://images.example.com/step.jpg",
         stepTitle: "Жарка",
         stepInstruction: "Добавьте сыр и обжарьте омлет",
       },

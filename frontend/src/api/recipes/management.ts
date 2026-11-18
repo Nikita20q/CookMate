@@ -1,4 +1,4 @@
-import type { RecipeDetail } from "@/types/recipes";
+import type { RecipeDetail, RecipeIngredient } from "@/types/recipes";
 import type { RecipeEditorValues } from "@/types/recipe-editor";
 
 export interface RecipeWriteRequest {
@@ -11,7 +11,7 @@ export interface RecipeWriteRequest {
   protein: number | null;
   fat: number | null;
   carbohydrates: number | null;
-  ingredients: { name: string; count: number; measurement: string }[];
+  ingredients: { name: string; count: number | null; measurement: string }[];
   steps: { text: string; title: string | null; imageUrl: string | null }[];
 }
 
@@ -19,7 +19,7 @@ export interface ManagedRecipeResponse {
   id: number;
   version: number;
   archived: boolean;
-  recipe: RecipeWriteRequest;
+  recipe: Omit<RecipeWriteRequest, "ingredients"> & { ingredients: RecipeIngredient[] };
 }
 
 export interface RecipeUpdateRequest {
@@ -64,6 +64,7 @@ export function managedRecipeToDetail({
     fat: recipe.fat,
     carbohydrates: recipe.carbohydrates,
     components: recipe.ingredients.map(({ name }) => name),
+    ingredients: recipe.ingredients.map((ingredient, position) => ({ ...ingredient, position })),
     contentJson: JSON.stringify({
       description: recipe.description ?? "",
       steps: recipe.steps.map((step, index) => ({
@@ -83,7 +84,11 @@ export function managedRecipeToEditor(
     ...managedRecipeToDetail(managed),
     prepTimeMinutes: managed.recipe.prepTimeMinutes ?? undefined,
     imageFile: null,
-    components: managed.recipe.ingredients.map(({ name }) => ({ title: name })),
+    components: managed.recipe.ingredients.map(({ name, count, measurement }) => ({
+      title: name,
+      quantity: count ?? null,
+      measurement: measurement ?? "",
+    })),
     steps: managed.recipe.steps.map((step) => ({
       stepTitle: step.title ?? "",
       stepInstruction: step.text,

@@ -21,7 +21,7 @@ beforeEach(() => {
 describe("Сохранение рецепта", () => {
   it("показывает серверный ответ без перезагрузки, обновляет кеши и получает новую версию при повторном редактировании", async () => {
     const parsedRecipe = managedFixture();
-    parsedRecipe.recipe.ingredients = parsedRecipe.recipe.ingredients.map(({ name }) => ({ name, count: 0, measurement: "" }));
+    parsedRecipe.recipe.ingredients = parsedRecipe.recipe.ingredients.map(({ name }) => ({ name, count: null, measurement: null }));
     vi.mocked(recipesApi.getManagedRecipe).mockResolvedValue(parsedRecipe);
     const response = deferred<ManagedRecipeResponse>();
     const save = vi.spyOn(recipesApi, "updateRecipe").mockReturnValue(response.promise);
@@ -30,8 +30,8 @@ describe("Сохранение рецепта", () => {
     await user.click(await screen.findByRole("button", { name: /Взбейте яйца/ }));
     await user.click(await screen.findByRole("button", { name: "Редактировать рецепт" }));
     expect(recipesApi.getManagedRecipe).toHaveBeenCalledWith(42);
-    expect(screen.queryByLabelText(/Количество ингредиента/)).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/Единица измерения ингредиента/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Количество ингредиента яйцо")).toHaveValue(null);
+    expect(screen.getByLabelText("Единица измерения ингредиента яйцо")).toHaveValue("");
     await user.clear(screen.getByLabelText("Название рецепта"));
     await user.type(screen.getByLabelText("Название рецепта"), "Название из формы");
     client.setQueryData(["recipes", "яйцо"], { recipes: [recipe, secondRecipe], recipeCount: 2 });
@@ -40,7 +40,7 @@ describe("Сохранение рецепта", () => {
 
     await user.click(screen.getByRole("button", { name: "Сохранить" }));
     await waitFor(() => expect(save).toHaveBeenCalledWith(42, expect.objectContaining({
-      version: 7, recipe: expect.objectContaining({ title: "Название из формы", slug: recipe.slug, ingredients: recipe.components.map((name) => ({ name, count: 1, measurement: "шт" })) }),
+      version: 7, recipe: expect.objectContaining({ title: "Название из формы", slug: recipe.slug, ingredients: recipe.components.map((name) => ({ name, count: null, measurement: "по вкусу" })) }),
     })));
     expect(screen.getByRole("button", { name: "Сохраняем…" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Отменить" })).toBeDisabled();

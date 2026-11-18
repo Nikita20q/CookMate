@@ -4,6 +4,8 @@ import apiClient from "@/api/apiClient";
 import { authApi } from "@/api/auth/api";
 import { favoritesApi } from "@/api/favorites/api";
 import { recipesApi } from "@/api/recipes/api";
+import { managedRecipeToEditor } from "@/api/recipes/management";
+import { buildRecipeUpdateRequest } from "@/api/recipes/update-request";
 import { useAuthStore } from "@/store/auth";
 import { managedFixture, recipe, token } from "./fixtures";
 
@@ -55,7 +57,8 @@ describe("Запросы к API", () => {
       requests.push(config);
       return { data: saved, status: 200, statusText: "OK", headers: {}, config };
     };
-    const request = { version: 7, recipe: saved.recipe };
+    const original = { ...saved, version: 7 };
+    const request = buildRecipeUpdateRequest(managedRecipeToEditor(original), original);
     expect(await recipesApi.updateRecipe(recipe.id, request)).toEqual(saved);
     expect(requests).toHaveLength(1);
     expect(requests[0].url).toBe("/admin/recipes/42");

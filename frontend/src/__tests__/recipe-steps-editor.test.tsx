@@ -57,7 +57,7 @@ describe("Редактор шагов инструкции", () => {
   it("показывает действия фотографии, удаляет её и восстанавливает при отмене шага", async () => {
     const { user } = await openEditor();
     await user.click(screen.getByRole("button", { name: "Редактировать шаг 2" }));
-    expect(screen.getByRole("img", { name: "Фотография шага 2" })).toHaveAttribute("src", "/step.jpg");
+    expect(screen.getByRole("img", { name: "Фотография шага 2" })).toHaveAttribute("src", "https://images.example.com/step.jpg");
     expect(screen.getByRole("button", { name: "Скачать фотографию шага 2" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Заменить фотографию шага 2" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Удалить фотографию шага 2" }));
@@ -67,7 +67,7 @@ describe("Редактор шагов инструкции", () => {
     await user.type(screen.getByRole("textbox", { name: "Текст шага 2" }), "Другой текст");
     await user.click(screen.getByRole("button", { name: "Отменить изменения шага 2" }));
     expect(stepsList().getByText("Добавьте сыр и обжарьте омлет")).toBeVisible();
-    expect(screen.getByRole("img", { name: "Фотография шага 2" })).toHaveAttribute("src", "/step.jpg");
+    expect(screen.getByRole("img", { name: "Фотография шага 2" })).toHaveAttribute("src", "https://images.example.com/step.jpg");
   });
 
   it("показывает только одно локальное фото, заменяет его и освобождает предпросмотр", async () => {
@@ -136,7 +136,7 @@ describe("Редактор шагов инструкции", () => {
     await waitFor(() => expect(stepsList().getAllByRole("listitem")[0]).toHaveTextContent("Добавьте сыр и обжарьте омлет"));
     const first = within(stepsList().getAllByRole("listitem")[0]);
     expect(first.getByRole("heading", { name: "Шаг 1" })).toBeVisible();
-    expect(first.getByRole("img", { name: "Фотография шага 1" })).toHaveAttribute("src", "/step.jpg");
+    expect(first.getByRole("img", { name: "Фотография шага 1" })).toHaveAttribute("src", "https://images.example.com/step.jpg");
     await user.click(screen.getByRole("button", { name: "Отменить" }));
     await user.click(screen.getByRole("button", { name: "Отменить изменения" }));
     await user.click(screen.getByRole("button", { name: "Редактировать рецепт" }));

@@ -1,3 +1,10 @@
+export interface RecipeIngredient {
+  name: string;
+  count?: number | null;
+  measurement?: string | null;
+  position?: number;
+}
+
 export interface Recipe {
   id: number | string;
   title: string;
@@ -5,8 +12,12 @@ export interface Recipe {
   description: string;
   image?: string;
   calories?: number;
+  protein?: number | null;
+  fat?: number | null;
+  carbohydrates?: number | null;
   approximateTime: string;
   components: string[];
+  ingredients?: RecipeIngredient[];
 }
 
 export interface RecipeDetail {
@@ -15,6 +26,7 @@ export interface RecipeDetail {
   title: string;
   image: string;
   components: string[];
+  ingredients?: RecipeIngredient[];
   description: string;
   calories?: number;
   protein: number | null;
