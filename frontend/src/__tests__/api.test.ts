@@ -4,8 +4,10 @@ import apiClient from "@/api/apiClient";
 import { authApi } from "@/api/auth/api";
 import { favoritesApi } from "@/api/favorites/api";
 import { recipesApi } from "@/api/recipes/api";
+import { managedRecipeToEditor } from "@/api/recipes/management";
+import { buildRecipeUpdateRequest } from "@/api/recipes/update-request";
 import { useAuthStore } from "@/store/auth";
-import { recipe, token } from "./fixtures";
+import { managedFixture, recipe, token } from "./fixtures";
 
 const originalAdapter = apiClient.defaults.adapter;
 let requests: InternalAxiosRequestConfig[];
@@ -30,6 +32,46 @@ afterEach(() => {
 });
 
 describe("Запросы к API", () => {
+  it("архивирует через PATCH с версией и запрашивает архив с пагинацией", async () => {
+    useAuthStore.getState().setAccessToken(token());
+    const saved = { ...managedFixture(), version: 8, archived: true };
+    const page = { recipes: [saved], page: 1, size: 20, total: 21 };
+    apiClient.defaults.adapter = async (config) => {
+      requests.push(config);
+      return { data: config.method === "patch" ? saved : page, status: 200, statusText: "OK", headers: {}, config };
+    };
+    expect(await recipesApi.setRecipeStatus(42, { version: 7, archived: true })).toEqual(saved);
+    expect(requests[0].method).toBe("patch");
+    expect(requests[0].url).toBe("/admin/recipes/42/status");
+    expect(requests[0].headers.Authorization).toBe(`Bearer ${token()}`);
+    expect(JSON.parse(requests[0].data)).toEqual({ version: 7, archived: true });
+    expect(await recipesApi.getArchivedRecipes(1, 20)).toEqual(page);
+    expect(requests[1].url).toBe("/admin/recipes");
+    expect(requests[1].params).toEqual({ archived: true, page: 1, size: 20 });
+  });
+
+  it("обновляет рецепт JSON-запросом по числовому ID и возвращает ManagedRecipeResponse", async () => {
+    useAuthStore.getState().setAccessToken(token());
+    const saved = { ...managedFixture(), version: 8 };
+    apiClient.defaults.adapter = async (config) => {
+      requests.push(config);
+      return { data: saved, status: 200, statusText: "OK", headers: {}, config };
+    };
+    const original = { ...saved, version: 7 };
+    const request = buildRecipeUpdateRequest(managedRecipeToEditor(original), original);
+    expect(await recipesApi.updateRecipe(recipe.id, request)).toEqual(saved);
+    expect(requests).toHaveLength(1);
+    expect(requests[0].url).toBe("/admin/recipes/42");
+    expect(requests[0].method).toBe("put");
+    expect(requests[0].headers.getContentType()).toBe("application/json");
+    expect(requests[0].headers.Authorization).toBe(`Bearer ${token()}`);
+    expect(JSON.parse(requests[0].data)).toEqual(request);
+
+    expect(await recipesApi.getManagedRecipe(recipe.id)).toEqual(saved);
+    expect(requests[1].url).toBe("/admin/recipes/42");
+    expect(requests[1].method).toBe("get");
+  });
+
   it("передаёт токен в /auth/me и завершает сессию при 401", async () => {
     useAuthStore.getState().setAccessToken(token());
     await apiClient.get("/auth/me");

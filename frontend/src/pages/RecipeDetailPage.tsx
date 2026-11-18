@@ -1,10 +1,11 @@
 import Button from "@/components/ui/Button";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import { matchRecipe } from "@/lib/ingredients";
+import { matchRecipe, normalizeIngredient } from "@/lib/ingredients";
+import { getRecipeIngredients } from "@/lib/recipe-ingredients";
 import { recipesApi } from "@/api/recipes/api";
-import { RECIPES_ENDPOINTS } from "@/api/recipes/endpoints";
 import { buildRecipeUpdateRequest } from "@/api/recipes/update-request";
-import { parseRecipeMinutes, recipeEditorResolver } from "@/lib/recipe-editor-validation";
+import { managedRecipeKey, managedRecipeToDetail, managedRecipeToEditor, type ManagedRecipeResponse } from "@/api/recipes/management";
+import { recipeEditorResolver } from "@/lib/recipe-editor-validation";
 import { getApiError } from "@/api/errors";
 import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import Input from "@/components/ui/Input";
@@ -12,11 +13,11 @@ import Textarea from "@/components/ui/Textarea";
 import PhotoEditor from "@/components/ui/PhotoEditor";
 import { useIngredientsStore } from "@/store/ingredients";
 import cn from "@/utils/classname-func";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLoaderData } from "@tanstack/react-router";
 import { ArrowLeft, Clock, Flame, CheckCircle2, Pencil, X } from "lucide-react";
-import { useCallback, useId, useState } from "react";
-import { useController, useForm, useWatch } from "react-hook-form";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useController, useForm, useWatch, type UseFormReturn } from "react-hook-form";
 import RecipePanels from "@/components/recipes/RecipePanels";
 import RecipeEditActions from "@/components/recipes/RecipeEditActions";
 import RecipeIngredientsEditor from "@/components/recipes/RecipeIngredientsEditor";
@@ -25,6 +26,9 @@ import FavoriteButton from "@/components/recipes/FavoriteButton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAuthStore } from "@/store/auth";
 import type { RecipeEditorValues } from "@/types/recipe-editor";
+import type { Recipe, RecipeDetail } from "@/types/recipes";
+import FormError from "@/components/ui/FormError";
+import ArchiveRecipeButton from "@/components/recipes/ArchiveRecipeButton";
 
 interface Step {
   num: number;
@@ -38,13 +42,49 @@ interface RecipeContent {
   description: string;
 }
 
+const nutrients = [
+  { field: "protein", label: "Белки" },
+  { field: "fat", label: "Жиры" },
+  { field: "carbohydrates", label: "Углеводы" },
+] as const;
+
+function NutrientInput({ form, name, id }: {
+  form: UseFormReturn<RecipeEditorValues>;
+  name: "protein" | "fat" | "carbohydrates";
+  id: string;
+}) {
+  const { field, fieldState } = useController({ control: form.control, name, defaultValue: null });
+  return (
+    <Input
+      {...field}
+      id={id}
+      type="number"
+      min={0}
+      step={1}
+      variant="compact"
+      suffix="г"
+      placeholder="Не указано"
+      value={field.value ?? ""}
+      onChange={(event) => field.onChange(event.target.value === "" ? null : Number(event.target.value))}
+      error={fieldState.error?.message}
+      className="text-center"
+    />
+  );
+}
+
 export function RecipeDetailPage() {
   const editorId = useId();
+  const queryClient = useQueryClient();
   const { recipeSlug } = useLoaderData({ from: "/recipes/$acronym" });
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [discardRequested, setDiscardRequested] = useState(false);
+  const [archivePending, setArchivePending] = useState(false);
   const closeDiscardDialog = useCallback(() => setDiscardRequested(false), []);
   const accessToken = useAuthStore((state) => state.accessToken);
+  const activeContext = useRef({ recipeSlug, accessToken });
+  useEffect(() => {
+    activeContext.current = { recipeSlug, accessToken };
+  }, [recipeSlug, accessToken]);
   const { canManageRecipes } = useCurrentUser();
   const form = useForm<RecipeEditorValues>({ resolver: recipeEditorResolver });
   const { register, reset, control, handleSubmit } = form;
@@ -67,22 +107,57 @@ export function RecipeDetailPage() {
   const [editingContext, setEditingContext] = useState<{
     recipeSlug: string;
     accessToken: string;
+    managedRecipe: ManagedRecipeResponse;
   } | null>(null);
   const isEditing =
     canManageRecipes &&
     editingContext?.recipeSlug === recipeSlug &&
     editingContext?.accessToken === accessToken;
 
-  const previewSave = handleSubmit((values) => {
-    if (!isEditing || !canManageRecipes) return;
-    const { payload, files, formData } = buildRecipeUpdateRequest(values);
-    console.log("Recipe update request", {
-      method: "PUT",
-      url: `${RECIPES_ENDPOINTS.getById}/${encodeURIComponent(recipeSlug)}`,
-      body: payload,
-      files,
-      formData,
-    });
+  const loadEditorMutation = useMutation({
+    mutationFn: ({ id }: { id: RecipeDetail["id"]; recipeSlug: string; accessToken: string }) => recipesApi.getManagedRecipe(id),
+    onSuccess: (managedRecipe, context) => {
+      if (activeContext.current.recipeSlug !== context.recipeSlug || activeContext.current.accessToken !== context.accessToken) return;
+      queryClient.setQueryData(managedRecipeKey(context.accessToken, managedRecipe.id), managedRecipe);
+      reset(managedRecipeToEditor(managedRecipe));
+      setEditingContext({ ...context, managedRecipe });
+      setDiscardRequested(false);
+      updateRecipeMutation.reset();
+    },
+  });
+
+  const updateRecipeMutation = useMutation({
+    mutationFn: ({ values, context }: { values: RecipeEditorValues; context: NonNullable<typeof editingContext> }) =>
+      recipesApi.updateRecipe(context.managedRecipe.id, buildRecipeUpdateRequest(values, context.managedRecipe)),
+    onSuccess: async (managedRecipe, { context }) => {
+      // Prevent an older in-flight read from overwriting the confirmed response.
+      await queryClient.cancelQueries({
+        predicate: ({ queryKey, state }) =>
+          (queryKey[0] === "recipes" && queryKey[1] === context.recipeSlug) ||
+          ((queryKey[0] === "recipes" || queryKey[0] === "favorites") && !!state.data && typeof state.data === "object" && "recipes" in state.data),
+      });
+      const updated = managedRecipeToDetail(managedRecipe);
+      if (activeContext.current.accessToken === context.accessToken) {
+        queryClient.setQueryData(managedRecipeKey(context.accessToken, managedRecipe.id), managedRecipe);
+      }
+      queryClient.setQueryData(["recipes", managedRecipe.recipe.slug], updated);
+      queryClient.setQueriesData<{ recipes: Recipe[] }>({
+        predicate: ({ queryKey, state }) => (queryKey[0] === "recipes" || queryKey[0] === "favorites") &&
+          !!state.data && typeof state.data === "object" && "recipes" in state.data,
+      }, (current) => current && ({ ...current, recipes: current.recipes.map((item) =>
+        String(item.id) === String(updated.id) ? { ...item, ...updated, slug: managedRecipe.recipe.slug } : item) }));
+      const recognized = useIngredientsStore.getState().recognitionResult;
+      if (recognized) useIngredientsStore.getState().setRecognitionResult({
+        ...recognized,
+        recipes: recognized.recipes.map((item) => String(item.id) === String(updated.id)
+          ? { ...item, ...updated, slug: managedRecipe.recipe.slug } : item),
+      });
+      if (activeContext.current.recipeSlug !== context.recipeSlug || activeContext.current.accessToken !== context.accessToken) return;
+      setCompletedSteps(new Set());
+      setEditingContext(null);
+      setDiscardRequested(false);
+      reset();
+    },
   });
 
   const {
@@ -109,6 +184,11 @@ export function RecipeDetailPage() {
       return next;
     });
   };
+
+  const saveRecipe = handleSubmit((values) => {
+    if (!isEditing || !canManageRecipes || !editingContext || updateRecipeMutation.isPending) return;
+    updateRecipeMutation.mutate({ values, context: editingContext });
+  });
 
   const cancelEditing = () => {
     setDiscardRequested(false);
@@ -175,170 +255,215 @@ export function RecipeDetailPage() {
     description: parsedContent.description ?? recipe.description,
   };
 
+  const recipeIngredients = getRecipeIngredients(recipe);
   const { ingredients, matchedCount, totalCount, matchScore } = matchRecipe(
     {
       components: isEditing
         ? draftIngredients.map((ingredient) => ingredient.title)
-        : recipe.components,
+        : recipeIngredients.map(({ name }) => name),
     },
     currentIngredients,
   );
+  const availableIngredients = new Set(ingredients.filter(({ available }) => available).map(({ key }) => key));
 
   const overview = (
     <form
       aria-label={isEditing ? "Черновик рецепта" : undefined}
       noValidate
-      onSubmit={previewSave}
+      onSubmit={saveRecipe}
       className={cn("flex min-w-0 flex-col [overflow-wrap:anywhere]", {
         "xl:pb-36": isEditing,
       })}
     >
-      {isEditing ? (
-        <PhotoEditor
-          contextLabel="рецепта"
-          downloadName="recipe-photo"
-          imageUrl={imageField.value}
-          imageFile={imageFileField.value}
-          editing
-          required
-          error={errors.image?.message}
-          className="p-4"
-          onChange={(file) => {
-            imageFileField.onChange(file);
-            if (!file) imageField.onChange("");
-            if (isSubmitted) void form.trigger("image");
-          }}
-        />
-      ) : (
-        <div className="relative h-56 shrink-0 sm:h-[280px]">
-          <ImageWithFallback
-            src={recipe.image}
-            alt={recipe.title}
-            className="w-full h-full object-cover"
+      <fieldset disabled={updateRecipeMutation.isPending} className="contents">
+        {isEditing ? (
+          <PhotoEditor
+            contextLabel="рецепта"
+            downloadName="recipe-photo"
+            imageUrl={imageField.value}
+            imageFile={imageFileField.value}
+            editing
+            required
+            error={errors.image?.message}
+            className="p-4"
+            onChange={(file) => {
+              imageFileField.onChange(file);
+              if (!file) imageField.onChange("");
+              if (isSubmitted) void form.trigger("image");
+            }}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40" />
-        </div>
-      )}
+        ) : (
+          <div className="relative h-56 shrink-0 sm:h-[280px]">
+            <ImageWithFallback
+              src={recipe.image}
+              alt={recipe.title}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40" />
+          </div>
+        )}
 
-      <div>
-        <div className="px-7 pt-6 pb-4">
-          {isEditing ? (
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2 text-sm font-medium">
-                <label htmlFor={`${editorId}-title`}>Название рецепта</label>
-                <Input id={`${editorId}-title`} {...register("title")} error={errors.title?.message} />
-              </div>
-              <div className="flex flex-col gap-2 text-sm font-medium">
-                <label htmlFor={`${editorId}-description`}>Описание рецепта</label>
-                <Textarea id={`${editorId}-description`} {...register("description")} error={errors.description?.message} rows={5} />
-              </div>
-            </div>
-          ) : (
-            <>
-              <h1 className="font-['Lora',serif] text-[26px] leading-tight font-semibold text-foreground">
-                {recipe.title}
-              </h1>
-              <p className="text-muted-foreground text-sm leading-relaxed mt-3">
-                {content.description || recipe.description}
-              </p>
-            </>
-          )}
-        </div>
-
-        <div className="mx-7 rounded-xl grid grid-cols-2 gap-2 p-4 bg-secondary mb-6">
-          {[
-            {
-              icon: <Clock size={16} className="text-primary" />,
-              label: "Время",
-              field: "prepTimeMinutes" as const,
-              value: recipe.approximateTime,
-            },
-            {
-              icon: <Flame size={16} className="text-accent" />,
-              label: "Калории",
-              field: "calories" as const,
-              value: `${recipe.calories}`,
-            },
-          ].map(({ icon, label, value, field }) => (
-            <div key={label} className="flex flex-col items-center gap-1">
-              {icon}
-              {isEditing ? (
-                <div className="flex w-full flex-col items-center gap-1 text-xs text-muted-foreground">
-                  <label htmlFor={`${editorId}-${field}`}>{label}</label>
+        <div>
+          <div className="px-7 pt-6 pb-4">
+            {isEditing ? (
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-2 text-sm font-medium">
+                  <label htmlFor={`${editorId}-title`}>Название рецепта</label>
                   <Input
-                    id={`${editorId}-${field}`}
-                    variant="compact"
-                    type="number"
-                    min={field === "calories" ? 0 : 1}
-                    step={1}
-                    suffix={field === "prepTimeMinutes" ? "мин" : undefined}
-                    error={errors[field]?.message}
-                    {...register(field, {
-                      setValueAs: (value: string) => value === "" ? undefined : Number(value),
-                    })}
-                    className="text-center"
+                    id={`${editorId}-title`}
+                    {...register("title")}
+                    error={errors.title?.message}
                   />
                 </div>
-              ) : (
-                <>
-                  <span className="text-[10px] text-muted-foreground">
-                    {label}
-                  </span>
-                  <span className="text-[13px] font-bold text-foreground">
-                    {value}
-                  </span>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <div className="px-7 pb-8">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-['Lora',serif] text-lg font-semibold text-foreground">
-              Ингредиенты
-            </h2>
-            <span className="text-xs text-muted-foreground">
-              <span className="text-primary font-semibold">{matchedCount}</span>
-              /{totalCount} в кладовой
-            </span>
+                <div className="flex flex-col gap-2 text-sm font-medium">
+                  <label htmlFor={`${editorId}-description`}>
+                    Описание рецепта
+                  </label>
+                  <Textarea
+                    id={`${editorId}-description`}
+                    {...register("description")}
+                    error={errors.description?.message}
+                    rows={5}
+                  />
+                </div>
+              </div>
+            ) : (
+              <>
+                <h1 className="font-['Lora',serif] text-[26px] leading-tight font-semibold text-foreground">
+                  {recipe.title}
+                </h1>
+                <p className="text-muted-foreground text-sm leading-relaxed mt-3">
+                  {content.description || recipe.description}
+                </p>
+              </>
+            )}
           </div>
-          {isEditing ? (
-            <RecipeIngredientsEditor form={form} />
-          ) : (
-            <div className="flex flex-col gap-2">
-              {ingredients.map(({ key, title, available: isInPantry }) => {
-                return (
-                  <div
-                    key={key}
-                    className={cn(
-                      "flex items-center justify-between px-4 py-2.5 rounded-xl border transition-colors",
-                      isInPantry
-                        ? "bg-[rgba(61,107,79,0.08)] border-[rgba(61,107,79,0.2)]"
-                        : "bg-card border-border",
-                    )}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div
-                        className={cn(
-                          "w-2 h-2 rounded-full flex-shrink-0",
-                          isInPantry ? "bg-primary" : "bg-muted-foreground",
-                        )}
-                      />
-                      <span className="text-sm text-foreground">{title}</span>
-                    </div>
-                    {!isInPantry && (
-                      <span className="px-2 py-0.5 rounded-full bg-secondary text-[10px] text-muted-foreground">
-                        купить
-                      </span>
-                    )}
+
+          <div className="mx-7 rounded-xl grid grid-cols-2 gap-2 p-4 bg-secondary mb-6">
+            {[
+              {
+                icon: <Clock size={16} className="text-primary" />,
+                label: "Время",
+                field: "prepTimeMinutes" as const,
+                value: recipe.approximateTime,
+              },
+              {
+                icon: <Flame size={16} className="text-accent" />,
+                label: "Калории",
+                field: "calories" as const,
+                value: recipe.calories == null ? "Не указано" : `${recipe.calories}`,
+              },
+            ].map(({ icon, label, value, field }) => (
+              <div key={label} className="flex flex-col items-center gap-1">
+                {icon}
+                {isEditing ? (
+                  <div className="flex w-full flex-col items-center gap-1 text-xs text-muted-foreground">
+                    <label htmlFor={`${editorId}-${field}`}>{label}</label>
+                    <Input
+                      id={`${editorId}-${field}`}
+                      variant="compact"
+                      type="number"
+                      min={field === "calories" ? 0 : 1}
+                      step={1}
+                      suffix={field === "prepTimeMinutes" ? "мин" : undefined}
+                      error={errors[field]?.message}
+                      {...register(field, {
+                        setValueAs: (value: string) =>
+                          value === "" ? undefined : Number(value),
+                      })}
+                      className="text-center"
+                    />
                   </div>
-                );
-              })}
+                ) : (
+                  <>
+                    <span className="text-[10px] text-muted-foreground">
+                      {label}
+                    </span>
+                    <span className="text-[13px] font-bold text-foreground">
+                      {value}
+                    </span>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="mx-7 mb-6 min-w-0 rounded-xl bg-secondary p-4" role="group" aria-label="Пищевая ценность">
+            <p className="mb-3 text-sm font-medium">Пищевая ценность</p>
+            <div className={cn("grid gap-3", isEditing ? "grid-cols-[repeat(auto-fit,minmax(min(100%,10rem),1fr))]" : "grid-cols-3")}>
+              {nutrients.map(({ field, label }) => (
+                <div key={field} className="min-w-0 space-y-1 text-center">
+                  {isEditing ? (
+                    <>
+                      <label htmlFor={`${editorId}-${field}`} className="text-xs text-muted-foreground">{label}</label>
+                      <NutrientInput
+                        form={form}
+                        name={field}
+                        id={`${editorId}-${field}`}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs text-muted-foreground">{label}</p>
+                      <p className="text-sm font-semibold">{recipe[field] == null ? "Не указано" : `${recipe[field]} г`}</p>
+                    </>
+                  )}
+                </div>
+              ))}
             </div>
-          )}
+            {isEditing && <p className="mt-3 text-xs text-muted-foreground">Необязательные поля. Укажите целые значения в граммах.</p>}
+          </div>
+
+          <div className="px-7 pb-8">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-['Lora',serif] text-lg font-semibold text-foreground">
+                Ингредиенты
+              </h2>
+              <span className="text-xs text-muted-foreground">
+                <span className="text-primary font-semibold">{matchedCount}</span>
+                /{totalCount} в кладовой
+              </span>
+            </div>
+            {isEditing ? (
+              <RecipeIngredientsEditor form={form} />
+            ) : (
+              <div className="flex flex-col gap-2">
+                {recipeIngredients.map(({ name, count, measurement }, index) => {
+                  const isInPantry = availableIngredients.has(normalizeIngredient(name));
+                  const amount = [count, measurement?.trim()].filter((value) => value != null && value !== "").join(" ");
+                  return (
+                    <div
+                      key={index}
+                      className={cn(
+                        "flex items-center justify-between px-4 py-2.5 rounded-xl border transition-colors",
+                        isInPantry
+                          ? "bg-[rgba(61,107,79,0.08)] border-[rgba(61,107,79,0.2)]"
+                          : "bg-card border-border",
+                      )}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className={cn(
+                            "w-2 h-2 rounded-full flex-shrink-0",
+                            isInPantry ? "bg-primary" : "bg-muted-foreground",
+                          )}
+                        />
+                        <span className="text-sm text-foreground">{name}</span>
+                      </div>
+                      {amount && <span className="ml-auto px-2 text-sm text-muted-foreground">{amount}</span>}
+                      {!isInPantry && (
+                        <span className="px-2 py-0.5 rounded-full bg-secondary text-[10px] text-muted-foreground">
+                          купить
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </fieldset>
     </form>
   );
 
@@ -357,7 +482,9 @@ export function RecipeDetailPage() {
         </h2>
 
         {isEditing ? (
-          <RecipeStepsEditor form={form} />
+          <fieldset disabled={updateRecipeMutation.isPending}>
+            <RecipeStepsEditor form={form} />
+          </fieldset>
         ) : (
           <>
             <div className="flex flex-col gap-3">
@@ -387,6 +514,7 @@ export function RecipeDetailPage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
+                      {step.stepTitle && <h3 className="mb-2 text-sm font-semibold">{step.stepTitle}</h3>}
                       <p
                         className={cn(
                           "text-sm leading-relaxed",
@@ -459,6 +587,7 @@ export function RecipeDetailPage() {
             <Button
               variant={isEditing ? "outline" : "primary"}
               type="button"
+              disabled={loadEditorMutation.isPending || updateRecipeMutation.isPending || archivePending}
               aria-pressed={isEditing}
               onClick={() => {
                 if (!canManageRecipes || !accessToken) return;
@@ -466,22 +595,7 @@ export function RecipeDetailPage() {
                   setDiscardRequested(true);
                   return;
                 }
-                setDiscardRequested(false);
-                const { approximateTime, ...recipeFields } = recipe;
-                reset({
-                  ...recipeFields,
-                  prepTimeMinutes: parseRecipeMinutes(approximateTime),
-                  imageFile: null,
-                  components: recipe.components.map((title) => ({ title })),
-                  steps: content.steps.map((step) => ({
-                    stepTitle: step.stepTitle,
-                    stepInstruction: step.stepInstruction,
-                    imageUrl: step.imageUrl,
-                    imageFile: null,
-                  })),
-                  description: content.description || recipe.description,
-                });
-                setEditingContext({ recipeSlug, accessToken });
+                loadEditorMutation.mutate({ id: recipe.id, recipeSlug, accessToken });
               }}
             >
               {isEditing ? (
@@ -492,10 +606,18 @@ export function RecipeDetailPage() {
               ) : (
                 <>
                   <Pencil size={17} />
-                  Редактировать рецепт
+                  {loadEditorMutation.isPending ? "Загружаем редактор…" : "Редактировать рецепт"}
                 </>
               )}
             </Button>
+          )}
+          {canManageRecipes && (
+            <ArchiveRecipeButton
+              key={`${accessToken}:${recipe.id}`}
+              recipe={recipe}
+              disabled={isEditing || loadEditorMutation.isPending || updateRecipeMutation.isPending}
+              onPendingChange={setArchivePending}
+            />
           )}
           <span className="bg-secondary text-foreground font-semibold text-sm px-3 py-1.5 rounded-full">
             {matchScore}% совпадение
@@ -507,11 +629,19 @@ export function RecipeDetailPage() {
         </div>
       </div>
 
+      {!isEditing && loadEditorMutation.isError && loadEditorMutation.variables?.recipeSlug === recipeSlug && loadEditorMutation.variables.accessToken === accessToken && (
+        <div className="px-4 py-3 sm:px-8">
+          <FormError message={getApiError(loadEditorMutation.error, "Не удалось загрузить данные для редактирования.").message} />
+        </div>
+      )}
+
       <RecipePanels overview={overview} instructions={instructions} />
       {isEditing && (
         <RecipeEditActions
           onCancel={() => setDiscardRequested(true)}
-          onSave={() => void previewSave()}
+          onSave={() => void saveRecipe()}
+          isSaving={updateRecipeMutation.isPending}
+          error={updateRecipeMutation.isError ? getApiError(updateRecipeMutation.error, "Не удалось сохранить рецепт.").message : undefined}
         />
       )}
       {isEditing && discardRequested && (

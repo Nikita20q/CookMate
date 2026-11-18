@@ -17,6 +17,11 @@ const RecipeAccordionItem = ({ recipe, currentIngredients }: Props) => {
   const [open, setOpen] = useState(false);
   const { ingredients, matchedCount, totalCount, matchScore } =
     matchRecipe(recipe, currentIngredients);
+  const nutrients = [
+    { label: "Белки", value: recipe.protein },
+    { label: "Жиры", value: recipe.fat },
+    { label: "Углеводы", value: recipe.carbohydrates },
+  ].filter(({ value }) => value != null);
 
   return (
     <div className="relative rounded-2xl overflow-hidden transition-all bg-card mb-3 border border-custom">
@@ -90,8 +95,20 @@ const RecipeAccordionItem = ({ recipe, currentIngredients }: Props) => {
               </p>
             </div>
 
-            <div className="flex flex-col justify-between">
-              <div />
+            <div className="flex flex-col justify-between gap-5">
+              {nutrients.length > 0 && (
+                <div role="group" aria-label="Пищевая ценность">
+                  <p className="mb-3 text-xs font-bold uppercase tracking-wider">Пищевая ценность</p>
+                  <dl className="grid grid-cols-3 gap-3">
+                    {nutrients.map(({ label, value }) => (
+                      <div key={label}>
+                        <dt className="text-xs text-muted-foreground">{label}</dt>
+                        <dd className="mt-1 text-sm font-semibold">{value} г</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )}
               <ButtonLink to="/recipes/$acronym" params={{ acronym: recipe.slug }} text="Посмотреть полный рецепт" className="w-full" />
             </div>
           </div>

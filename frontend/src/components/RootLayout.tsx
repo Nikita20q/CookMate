@@ -17,14 +17,19 @@ import { Route as loginRoute } from "@/routes/auth/login";
 import { Route as registerRoute } from "@/routes/auth/register";
 import { useIngredientsStore } from "@/store/ingredients";
 import { useEffect, useState } from "react";
-import { Menu } from "lucide-react";
+import { Archive, Menu } from "lucide-react";
 import ResponsiveSidebar from "@/components/ui/ResponsiveSidebar";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const RootLayout = () => {
   const { pathname, href } = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [navigationOpen, setNavigationOpen] = useState(false);
+  const { canManageRecipes } = useCurrentUser();
+  const navigationItems = canManageRecipes
+    ? [...NAV_ITEMS, { label: "Архив рецептов", to: "/recipes/archive", icon: Archive }]
+    : NAV_ITEMS;
 
   useEffect(() => {
     return useAuthStore.subscribe((state, previous) => {
@@ -33,6 +38,8 @@ const RootLayout = () => {
       queryClient.removeQueries({ queryKey: ["favorites"] });
       void queryClient.cancelQueries({ queryKey: ["me"] });
       queryClient.removeQueries({ queryKey: ["me"] });
+      void queryClient.cancelQueries({ queryKey: ["admin-recipes"] });
+      queryClient.removeQueries({ queryKey: ["admin-recipes"] });
     });
   }, [queryClient]);
   const isAuthenticated = useAuthStore((state) => state.status === "authenticated");
@@ -87,8 +94,8 @@ const RootLayout = () => {
 
         {/* Nav links */}
         <nav className="flex flex-col gap-1 px-3 pt-4 flex-1">
-          {NAV_ITEMS.map(({ to, icon: Icon, label }) => {
-            const active = pathname === to || (to !== "/" && pathname.startsWith(`${to}/`));
+          {navigationItems.map(({ to, icon: Icon, label }) => {
+            const active = pathname === to || (to !== "/" && pathname.startsWith(`${to}/`) && !(to === "/recipes" && pathname === "/recipes/archive"));
             return (
               <Link
                 key={to}

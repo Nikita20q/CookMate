@@ -41,6 +41,16 @@ function IngredientRow({ form, id, index, count, onRemove }: IngredientRowProps)
     control: form.control,
     name,
   });
+  const quantity = useController({
+    control: form.control,
+    name: `components.${index}.quantity`,
+    defaultValue: null,
+  });
+  const measurement = useController({
+    control: form.control,
+    name: `components.${index}.measurement`,
+    defaultValue: "",
+  });
   const [originalTitle, setOriginalTitle] = useState<string | null>(
     () => field.value === "" ? "" : null,
   );
@@ -140,6 +150,35 @@ function IngredientRow({ form, id, index, count, onRemove }: IngredientRowProps)
         </div>
       </div>
       {!editing && <FormError message={fieldState.error?.message} />}
+      <div className="mt-2 grid min-w-0 grid-cols-2 gap-2 pl-11">
+        <div className="min-w-0 space-y-1">
+          <label htmlFor={`${id}-quantity`} className="text-xs text-muted-foreground">Количество</label>
+          <Input
+            {...quantity.field}
+            id={`${id}-quantity`}
+            type="number"
+            min={0}
+            step="any"
+            variant="compact"
+            aria-label={`Количество ингредиента ${title}`}
+            placeholder="Не указано"
+            value={quantity.field.value ?? ""}
+            onChange={(event) => quantity.field.onChange(event.target.value === "" ? null : Number(event.target.value))}
+            error={quantity.fieldState.error?.message}
+          />
+        </div>
+        <div className="min-w-0 space-y-1">
+          <label htmlFor={`${id}-measurement`} className="text-xs text-muted-foreground">Единица измерения</label>
+          <Input
+            {...measurement.field}
+            id={`${id}-measurement`}
+            variant="compact"
+            aria-label={`Единица измерения ингредиента ${title}`}
+            placeholder="Например, г"
+            error={measurement.fieldState.error?.message}
+          />
+        </div>
+      </div>
     </li>
   );
 }
@@ -176,6 +215,9 @@ export default function RecipeIngredientsEditor({ form }: EditorProps) {
         if (from !== -1 && to !== -1) move(from, to);
       }}
     >
+      <p className="mb-3 text-xs text-muted-foreground">
+        Количество и единицу можно не заполнять. Если единица не указана, сохранится «по вкусу».
+      </p>
       <SortableContext items={fields.map((field) => field.id)} strategy={verticalListSortingStrategy}>
         <ul aria-label="Ингредиенты рецепта" className="flex min-w-0 flex-col gap-2">
           {fields.map((field, index) => (
@@ -197,7 +239,7 @@ export default function RecipeIngredientsEditor({ form }: EditorProps) {
       <Button
         variant="secondary"
         className="mt-3 w-full"
-        onClick={() => append({ title: "" }, { shouldFocus: false })}
+        onClick={() => append({ title: "", quantity: null, measurement: "" }, { shouldFocus: false })}
       >
         <Plus size={17} />
         Добавить ингредиент

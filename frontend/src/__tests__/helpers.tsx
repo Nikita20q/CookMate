@@ -7,11 +7,17 @@ import {
   RouterProvider,
 } from "@tanstack/react-router";
 import { afterEach, vi } from "vitest";
+import { managedFixture, recipe } from "./fixtures";
 import { routeTree } from "@/routeTree.gen";
 import { recipesApi } from "@/api/recipes/api";
 import { useIngredientsStore } from "@/store/ingredients";
 
 const clients: QueryClient[] = [];
+
+export function mockRecipeManagement() {
+  vi.spyOn(recipesApi, "getManagedRecipe").mockImplementation(async () =>
+    managedFixture(await recipesApi.getBySlug(recipe.slug)));
+}
 
 export async function renderApp(path: string) {
   vi.spyOn(recipesApi, "getSearchHistory").mockResolvedValue([

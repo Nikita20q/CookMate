@@ -1,0 +1,99 @@
+import type { RecipeDetail, RecipeIngredient } from "@/types/recipes";
+import type { RecipeEditorValues } from "@/types/recipe-editor";
+
+export interface RecipeWriteRequest {
+  title: string;
+  slug: string;
+  description: string | null;
+  imageUrl: string | null;
+  prepTimeMinutes: number | null;
+  calories: number | null;
+  protein: number | null;
+  fat: number | null;
+  carbohydrates: number | null;
+  ingredients: { name: string; count: number | null; measurement: string }[];
+  steps: { text: string; title: string | null; imageUrl: string | null }[];
+}
+
+export interface ManagedRecipeResponse {
+  id: number;
+  version: number;
+  archived: boolean;
+  recipe: Omit<RecipeWriteRequest, "ingredients"> & { ingredients: RecipeIngredient[] };
+}
+
+export interface RecipeUpdateRequest {
+  version: number;
+  recipe: RecipeWriteRequest;
+}
+
+export interface RecipeStatusRequest {
+  version: number;
+  archived: boolean;
+}
+
+export interface ManagedRecipePage {
+  recipes: ManagedRecipeResponse[];
+  page: number;
+  size: number;
+  total: number;
+}
+
+export const managedRecipeKey = (accessToken: string | null, id: RecipeDetail["id"]) =>
+  ["admin-recipes", accessToken, "detail", String(id)] as const;
+
+export const archivedRecipesKey = (accessToken: string | null) =>
+  ["admin-recipes", accessToken, "archived"] as const;
+
+export function managedRecipeToDetail({
+  id,
+  recipe,
+}: ManagedRecipeResponse): RecipeDetail {
+  return {
+    id,
+    slug: recipe.slug,
+    title: recipe.title,
+    description: recipe.description ?? "",
+    image: recipe.imageUrl ?? "",
+    approximateTime:
+      recipe.prepTimeMinutes === null
+        ? "Не указано"
+        : `${recipe.prepTimeMinutes} мин`,
+    calories: recipe.calories ?? undefined,
+    protein: recipe.protein,
+    fat: recipe.fat,
+    carbohydrates: recipe.carbohydrates,
+    components: recipe.ingredients.map(({ name }) => name),
+    ingredients: recipe.ingredients.map((ingredient, position) => ({ ...ingredient, position })),
+    contentJson: JSON.stringify({
+      description: recipe.description ?? "",
+      steps: recipe.steps.map((step, index) => ({
+        num: index + 1,
+        stepTitle: step.title ?? `Шаг ${index + 1}`,
+        stepInstruction: step.text,
+        imageUrl: step.imageUrl ?? "",
+      })),
+    }),
+  };
+}
+
+export function managedRecipeToEditor(
+  managed: ManagedRecipeResponse,
+): RecipeEditorValues {
+  return {
+    ...managedRecipeToDetail(managed),
+    prepTimeMinutes: managed.recipe.prepTimeMinutes ?? undefined,
+    imageFile: null,
+    components: managed.recipe.ingredients.map(({ name, count, measurement }) => ({
+      title: name,
+      quantity: count ?? null,
+      measurement: measurement ?? "",
+    })),
+    steps: managed.recipe.steps.map((step) => ({
+      stepTitle: step.title ?? "",
+      stepInstruction: step.text,
+      imageUrl: step.imageUrl ?? "",
+      imageFile: null,
+    })),
+  };
+}

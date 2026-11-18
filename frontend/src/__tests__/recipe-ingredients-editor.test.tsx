@@ -4,10 +4,11 @@ import { authApi } from "@/api/auth/api";
 import { favoritesApi } from "@/api/favorites/api";
 import { recipesApi } from "@/api/recipes/api";
 import { useAuthStore } from "@/store/auth";
-import { detail, recipe, token } from "./fixtures";
-import { renderApp } from "./helpers";
+import { detail, managedFixture, recipe, token } from "./fixtures";
+import { mockRecipeManagement, renderApp } from "./helpers";
 
 beforeEach(() => {
+  mockRecipeManagement();
   useAuthStore.getState().setAccessToken(token());
   vi.spyOn(authApi, "me").mockResolvedValue({ userId: 1, email: "admin@example.com", isStaff: true });
   vi.spyOn(favoritesApi, "getAll").mockResolvedValue({ recipeNumber: 0, recipes: [] });
@@ -24,6 +25,23 @@ function ingredientList() {
   return within(screen.getByRole("list", { name: "Ингредиенты рецепта" }));
 }
 
+function ingredientNames() {
+  return ingredientList().getAllByRole("listitem").map((row) =>
+    within(row).getByRole("button", { name: /^Редактировать ингредиент/ })
+      .getAttribute("aria-label")?.replace("Редактировать ингредиент ", ""));
+}
+
+function mockIngredientRects() {
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    const list = this.tagName === "UL" ? this : this.parentElement;
+    if (list?.getAttribute("aria-label") === "Ингредиенты рецепта") {
+      const index = [...list.children].indexOf(this);
+      return new DOMRect(0, index < 0 ? 0 : index * 120, 400, index < 0 ? list.children.length * 120 : 112);
+    }
+    return new DOMRect(0, 0, 400, 600);
+  });
+}
+
 describe("Редактор ингредиентов рецепта", () => {
   it("добавляет ингредиент в конец черновика и удаляет незавершённую строку при отмене", async () => {
     const { user, client } = await openEditor();
@@ -33,7 +51,7 @@ describe("Редактор ингредиентов рецепта", () => {
     expect(ingredientList().getAllByRole("listitem")).toHaveLength(3);
     await user.type(input, "  соль  {Enter}");
     await waitFor(() => expect(screen.queryByRole("textbox", { name: "Название ингредиента" })).not.toBeInTheDocument());
-    expect(ingredientList().getAllByRole("listitem").map((row) => row.textContent)).toEqual(["яйцо", "сыр", "соль"]);
+    expect(ingredientNames()).toEqual(["яйцо", "сыр", "соль"]);
     expect(client.getQueryData(["recipes", recipe.slug])).toEqual(detail);
     await user.click(screen.getByRole("button", { name: "Добавить ингредиент" }));
     await user.click(screen.getByRole("button", { name: "Отменить изменение ингредиента" }));
@@ -41,7 +59,7 @@ describe("Редактор ингредиентов рецепта", () => {
     await user.click(screen.getByRole("button", { name: "Отменить" }));
     await user.click(screen.getByRole("button", { name: "Отменить изменения" }));
     await user.click(screen.getByRole("button", { name: "Редактировать рецепт" }));
-    expect(ingredientList().getAllByRole("listitem").map((row) => row.textContent)).toEqual(["яйцо", "сыр"]);
+    expect(ingredientNames()).toEqual(["яйцо", "сыр"]);
   });
 
   it("показывает управление только в режиме редактирования администратора", async () => {
@@ -101,18 +119,11 @@ describe("Редактор ингредиентов рецепта", () => {
     await user.click(screen.getByRole("button", { name: "Отменить" }));
     await user.click(screen.getByRole("button", { name: "Отменить изменения" }));
     await user.click(screen.getByRole("button", { name: "Редактировать рецепт" }));
-    expect(ingredientList().getAllByRole("listitem").map((row) => row.textContent)).toEqual(["яйцо", "сыр"]);
+    expect(ingredientNames()).toEqual(["яйцо", "сыр"]);
   });
 
   it("перемещает ингредиенты клавиатурой по вертикали и откатывает порядок общей отменой", async () => {
-    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
-      const list = this.tagName === "UL" ? this : this.parentElement;
-      if (list?.getAttribute("aria-label") === "Ингредиенты рецепта") {
-        const index = [...list.children].indexOf(this);
-        return new DOMRect(0, index < 0 ? 0 : index * 64, 400, index < 0 ? list.children.length * 64 : 56);
-      }
-      return new DOMRect(0, 0, 400, 600);
-    });
+    mockIngredientRects();
     const { user, client } = await openEditor();
     const handle = ingredientList().getByRole("button", { name: "Переместить ингредиент яйцо" });
     act(() => handle.focus());
@@ -121,11 +132,50 @@ describe("Редактор ингредиентов рецепта", () => {
     await user.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}");
     expect(handle.closest("li")?.style.transform).toMatch(/^translate3d\(0px,/);
     await user.keyboard(" ");
-    await waitFor(() => expect(ingredientList().getAllByRole("listitem").map((row) => row.textContent)).toEqual(["сыр", "яйцо"]));
+    await waitFor(() => expect(ingredientNames()).toEqual(["сыр", "яйцо"]));
     expect(client.getQueryData(["recipes", recipe.slug])).toEqual(detail);
     await user.click(screen.getByRole("button", { name: "Отменить" }));
     await user.click(screen.getByRole("button", { name: "Отменить изменения" }));
     await user.click(screen.getByRole("button", { name: "Редактировать рецепт" }));
-    expect(ingredientList().getAllByRole("listitem").map((row) => row.textContent)).toEqual(["яйцо", "сыр"]);
+    expect(ingredientNames()).toEqual(["яйцо", "сыр"]);
+  });
+
+  it("сохраняет новый порядок вместе с количеством и показывает актуальный ответ сервера", async () => {
+    mockIngredientRects();
+    const saved = managedFixture();
+    saved.version = 8;
+    saved.recipe.ingredients = [
+      { name: "сыр", count: 1.5, measurement: "стакана" },
+      { name: "яйцо", count: null, measurement: null },
+    ];
+    const save = vi.spyOn(recipesApi, "updateRecipe").mockResolvedValue(saved);
+    const { user, client } = await openEditor();
+    expect(screen.getByLabelText("Количество ингредиента яйцо")).toHaveValue(2);
+    expect(screen.getByLabelText("Единица измерения ингредиента сыр")).toHaveValue("г");
+    await user.clear(screen.getByLabelText("Количество ингредиента сыр"));
+    await user.type(screen.getByLabelText("Количество ингредиента сыр"), "12.5");
+    const handle = ingredientList().getByRole("button", { name: "Переместить ингредиент яйцо" });
+    act(() => handle.focus());
+    await user.keyboard(" {ArrowDown}{ArrowDown}{ArrowDown} ");
+    await waitFor(() => expect(ingredientNames()).toEqual(["сыр", "яйцо"]));
+    expect(screen.getByLabelText("Количество ингредиента сыр")).toHaveValue(12.5);
+    expect(screen.getByLabelText("Количество ингредиента яйцо")).toHaveValue(2);
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith(recipe.id, expect.objectContaining({
+      version: 7, recipe: expect.objectContaining({ ingredients: [
+        { name: "сыр", count: 12.5, measurement: "г" },
+        { name: "яйцо", count: 2, measurement: "шт." },
+      ] }),
+    })));
+    expect(await screen.findByText("1.5 стакана")).toBeVisible();
+    expect(client.getQueryData(["recipes", recipe.slug])).toMatchObject({
+      components: ["сыр", "яйцо"], ingredients: saved.recipe.ingredients,
+    });
+    vi.mocked(recipesApi.getManagedRecipe).mockResolvedValue(saved);
+    await user.click(screen.getByRole("button", { name: "Редактировать рецепт" }));
+    expect(ingredientNames()).toEqual(["сыр", "яйцо"]);
+    expect(screen.getByLabelText("Количество ингредиента сыр")).toHaveValue(1.5);
+    expect(screen.getByLabelText("Количество ингредиента яйцо")).toHaveValue(null);
+    expect(screen.getByLabelText("Единица измерения ингредиента яйцо")).toHaveValue("");
   });
 });

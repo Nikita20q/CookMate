@@ -4,10 +4,11 @@ import { authApi } from "@/api/auth/api";
 import { favoritesApi } from "@/api/favorites/api";
 import { recipesApi } from "@/api/recipes/api";
 import { useAuthStore } from "@/store/auth";
-import { detail, recipe, token } from "./fixtures";
-import { renderApp } from "./helpers";
+import { detail, managedFixture, recipe, token } from "./fixtures";
+import { mockRecipeManagement, renderApp } from "./helpers";
 
 beforeEach(() => {
+  mockRecipeManagement();
   useAuthStore.getState().setAccessToken(token());
   vi.spyOn(authApi, "me").mockResolvedValue({ userId: 1, email: "admin@example.com", isStaff: true });
   vi.spyOn(favoritesApi, "getAll").mockResolvedValue({ recipeNumber: 0, recipes: [] });
@@ -21,33 +22,34 @@ beforeEach(() => {
 describe("Валидация редактора рецепта", () => {
   it.each(["15 мин", "15 минут", "15\u00a0мин"])("сохраняет время из API %s как число без редактирования поля", async (approximateTime) => {
     vi.mocked(recipesApi.getBySlug).mockResolvedValue({ ...detail, approximateTime });
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const save = vi.spyOn(recipesApi, "updateRecipe").mockResolvedValue({ ...managedFixture(), version: 8 });
     const { user } = await renderApp(`/recipes/${recipe.slug}`);
     await user.click(await screen.findByRole("button", { name: "Редактировать рецепт" }));
     expect(screen.getByLabelText("Время")).toHaveValue(15);
     expect(screen.getByLabelText("Время")).toHaveAttribute("type", "number");
     expect(screen.getByText("мин", { exact: true })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Сохранить" }));
-    await waitFor(() => expect(log).toHaveBeenCalledWith("Recipe update request", expect.objectContaining({ body: expect.objectContaining({ prepTimeMinutes: 15 }) })));
-    const request = log.mock.calls[0][1];
-    expect(request.body).not.toHaveProperty("approximateTime");
+    await waitFor(() => expect(save).toHaveBeenCalledWith(recipe.id, expect.objectContaining({ version: 7, recipe: expect.objectContaining({ prepTimeMinutes: 15 }) })));
+    const request = save.mock.calls[0][1];
+    expect(request.recipe).not.toHaveProperty("approximateTime");
     expect(screen.queryAllByRole("alert")).toHaveLength(0);
+    await user.click(await screen.findByRole("button", { name: "Редактировать рецепт" }));
     await user.clear(screen.getByLabelText("Время"));
     expect(screen.getByText("мин", { exact: true })).toBeVisible();
   });
 
   it("позволяет открыть рецепт без steps от парсера, но требует добавить шаг при сохранении", async () => {
     vi.mocked(recipesApi.getBySlug).mockResolvedValue({ ...detail, contentJson: JSON.stringify({ description: detail.description }) });
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const save = vi.spyOn(recipesApi, "updateRecipe").mockResolvedValue({ ...managedFixture(), version: 8 });
     const { user } = await renderApp(`/recipes/${recipe.slug}`);
     await user.click(await screen.findByRole("button", { name: "Редактировать рецепт" }));
     await user.click(screen.getByRole("button", { name: "Сохранить" }));
     expect(await screen.findByText("Добавьте хотя бы один шаг инструкции")).toBeVisible();
-    expect(log).not.toHaveBeenCalled();
+    expect(save).not.toHaveBeenCalled();
   });
 
   it("показывает все обязательные ошибки, блокирует сохранение и позволяет исправить черновик", async () => {
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const save = vi.spyOn(recipesApi, "updateRecipe").mockResolvedValue({ ...managedFixture(), version: 8 });
     const { user } = await renderApp(`/recipes/${recipe.slug}`);
     await user.click(await screen.findByRole("button", { name: "Редактировать рецепт" }));
     await user.clear(screen.getByLabelText("Название рецепта"));
@@ -67,8 +69,7 @@ describe("Валидация редактора рецепта", () => {
     expect(screen.getByRole("button", { name: "Добавить фотографию рецепта" })).toHaveAccessibleDescription("Добавьте главную фотографию рецепта");
     expect(screen.getByText("Добавьте хотя бы один ингредиент")).toBeVisible();
     expect(screen.getByText("Добавьте хотя бы один шаг инструкции")).toBeVisible();
-    expect(screen.queryByText(/Необязательно/)).not.toBeInTheDocument();
-    expect(log).not.toHaveBeenCalled();
+    expect(save).not.toHaveBeenCalled();
 
     await user.clear(screen.getByLabelText("Название рецепта"));
     await user.type(screen.getByLabelText("Название рецепта"), "  Новый омлет  ");
@@ -81,26 +82,24 @@ describe("Валидация редактора рецепта", () => {
     await user.click(screen.getByRole("button", { name: "Добавить шаг" }));
     await user.type(screen.getByLabelText("Текст шага 1"), "  Взбейте яйца  ");
     await user.click(screen.getByRole("button", { name: "Сохранить" }));
-    await waitFor(() => expect(log).toHaveBeenCalledWith("Recipe update request", expect.objectContaining({
-      body: expect.objectContaining({ title: "Новый омлет", prepTimeMinutes: 30, calories: 0, components: ["яйцо"], steps: [expect.objectContaining({ stepInstruction: "Взбейте яйца", image: null })] }),
-    })));
-    expect(screen.queryAllByRole("alert")).toHaveLength(0);
+    expect(await screen.findByRole("alert")).toHaveTextContent("Сервер пока не поддерживает загрузку новых фотографий");
+    expect(save).not.toHaveBeenCalled();
     expect(screen.getByLabelText("Название рецепта")).not.toHaveAttribute("aria-invalid", "true");
   });
 
   it.each(["-1", "1.5", "2147483648"])("не сохраняет недопустимую калорийность %s", async (value) => {
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const save = vi.spyOn(recipesApi, "updateRecipe").mockResolvedValue({ ...managedFixture(), version: 8 });
     const { user } = await renderApp(`/recipes/${recipe.slug}`);
     await user.click(await screen.findByRole("button", { name: "Редактировать рецепт" }));
     await user.clear(screen.getByLabelText("Калории"));
     await user.type(screen.getByLabelText("Калории"), value);
     await user.click(screen.getByRole("button", { name: "Сохранить" }));
     expect(await screen.findByText("Калорийность должна быть целым неотрицательным числом до 2147483647")).toBeVisible();
-    expect(log).not.toHaveBeenCalled();
+    expect(save).not.toHaveBeenCalled();
   });
 
   it("не сохраняет некорректное время и слишком длинное название", async () => {
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const save = vi.spyOn(recipesApi, "updateRecipe").mockResolvedValue({ ...managedFixture(), version: 8 });
     const { user } = await renderApp(`/recipes/${recipe.slug}`);
     await user.click(await screen.findByRole("button", { name: "Редактировать рецепт" }));
     await user.clear(screen.getByLabelText("Название рецепта"));
@@ -111,6 +110,57 @@ describe("Валидация редактора рецепта", () => {
     await user.click(screen.getByRole("button", { name: "Сохранить" }));
     expect(await screen.findByText("Название не должно превышать 255 символов")).toBeVisible();
     expect(screen.getByLabelText("Время")).toHaveAccessibleDescription("мин Укажите целое количество минут от 1 до 2147483647");
-    expect(log).not.toHaveBeenCalled();
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it.each([null, 0, 1.25])("позволяет необязательное количество %s и пустую единицу", async (quantity) => {
+    const save = vi.spyOn(recipesApi, "updateRecipe").mockResolvedValue({ ...managedFixture(), version: 8 });
+    const { user } = await renderApp(`/recipes/${recipe.slug}`);
+    await user.click(await screen.findByRole("button", { name: "Редактировать рецепт" }));
+    const count = screen.getByLabelText("Количество ингредиента яйцо");
+    const unit = screen.getByLabelText("Единица измерения ингредиента яйцо");
+    expect(count).not.toBeRequired();
+    expect(unit).not.toBeRequired();
+    await user.clear(count);
+    if (quantity !== null) await user.type(count, String(quantity));
+    await user.clear(unit);
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith(recipe.id, expect.objectContaining({
+      recipe: expect.objectContaining({ ingredients: [
+        { name: "яйцо", count: quantity, measurement: "по вкусу" },
+        { name: "сыр", count: 50, measurement: "г" },
+      ] }),
+    })));
+  });
+
+  it("отклоняет отрицательное количество и единицу длиннее ограничения DTO", async () => {
+    const save = vi.spyOn(recipesApi, "updateRecipe").mockResolvedValue({ ...managedFixture(), version: 8 });
+    const { user } = await renderApp(`/recipes/${recipe.slug}`);
+    await user.click(await screen.findByRole("button", { name: "Редактировать рецепт" }));
+    await user.clear(screen.getByLabelText("Количество ингредиента яйцо"));
+    await user.type(screen.getByLabelText("Количество ингредиента яйцо"), "-0.5");
+    await user.clear(screen.getByLabelText("Единица измерения ингредиента яйцо"));
+    await user.click(screen.getByLabelText("Единица измерения ингредиента яйцо"));
+    await user.paste("г".repeat(101));
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
+    expect(await screen.findByText("Количество должно быть неотрицательным числом")).toBeVisible();
+    expect(screen.getByText("Единица измерения не должна превышать 100 символов")).toBeVisible();
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it("разрешает повторяющиеся ингредиенты с разными количествами", async () => {
+    const save = vi.spyOn(recipesApi, "updateRecipe").mockResolvedValue({ ...managedFixture(), version: 8 });
+    const { user } = await renderApp(`/recipes/${recipe.slug}`);
+    await user.click(await screen.findByRole("button", { name: "Редактировать рецепт" }));
+    await user.click(screen.getByRole("button", { name: "Добавить ингредиент" }));
+    await user.type(screen.getByLabelText("Название ингредиента"), "яйцо{Enter}");
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith(recipe.id, expect.objectContaining({
+      recipe: expect.objectContaining({ ingredients: [
+        { name: "яйцо", count: 2, measurement: "шт." },
+        { name: "сыр", count: 50, measurement: "г" },
+        { name: "яйцо", count: null, measurement: "по вкусу" },
+      ] }),
+    })));
   });
 });

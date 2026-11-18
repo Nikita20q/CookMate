@@ -31,20 +31,46 @@ export const recipeEditorResolver: Resolver<RecipeEditorValues> = (values) => {
   }
 
   if (!values.image?.trim() && !values.imageFile) errors.image = error("Добавьте главную фотографию рецепта");
+  if ((values.description?.length ?? 0) > 20000) errors.description = error("Описание не должно превышать 20000 символов");
+
+  for (const field of ["protein", "fat", "carbohydrates"] as const) {
+    const value = values[field];
+    if (value != null && (!Number.isInteger(value) || value < 0 || value > MAX_INTEGER)) {
+      errors[field] = error("Укажите целое неотрицательное число до 2147483647 или оставьте поле пустым");
+    }
+  }
 
   if (!values.components?.length) errors.components = { root: error("Добавьте хотя бы один ингредиент") };
+  else if (values.components.length > 100) errors.components = { root: error("Допустимо не более 100 ингредиентов") };
   values.components?.forEach((ingredient, index) => {
-    if (!ingredient.title.trim()) {
+    const name = ingredient.title.trim().replace(/\s+/g, " ");
+    const ingredientErrors: { title?: FieldError; quantity?: FieldError; measurement?: FieldError } = {};
+    if (!name) ingredientErrors.title = error("Введите название ингредиента");
+    else if (name.length > 100) ingredientErrors.title = error("Название ингредиента не должно превышать 100 символов");
+    if (ingredient.quantity != null && (!Number.isFinite(ingredient.quantity) || ingredient.quantity < 0)) {
+      ingredientErrors.quantity = error("Количество должно быть неотрицательным числом");
+    }
+    if ((ingredient.measurement?.trim().length ?? 0) > 100) {
+      ingredientErrors.measurement = error("Единица измерения не должна превышать 100 символов");
+    }
+    if (Object.keys(ingredientErrors).length) {
       errors.components ??= {};
-      errors.components[index] = { title: error("Введите название ингредиента") };
+      errors.components[index] = ingredientErrors;
     }
   });
 
   if (!values.steps?.length) errors.steps = { root: error("Добавьте хотя бы один шаг инструкции") };
+  else if (values.steps.length > 100) errors.steps = { root: error("Допустимо не более 100 шагов") };
   values.steps?.forEach((step, index) => {
+    const stepErrors: { stepInstruction?: FieldError; stepTitle?: FieldError } = {};
     if (!step.stepInstruction.trim()) {
+      stepErrors.stepInstruction = error("Введите текст инструкции");
+    }
+    if (step.stepInstruction.length > 10000) stepErrors.stepInstruction = error("Текст шага не должен превышать 10000 символов");
+    if (step.stepTitle.trim().length > 255) stepErrors.stepTitle = error("Заголовок шага не должен превышать 255 символов");
+    if (Object.keys(stepErrors).length) {
       errors.steps ??= {};
-      errors.steps[index] = { stepInstruction: error("Введите текст инструкции") };
+      errors.steps[index] = stepErrors;
     }
   });
 
@@ -53,7 +79,11 @@ export const recipeEditorResolver: Resolver<RecipeEditorValues> = (values) => {
     values: {
       ...values,
       title,
-      components: values.components.map((ingredient) => ({ title: ingredient.title.trim().replace(/\s+/g, " ") })),
+      components: values.components.map((ingredient) => ({
+        ...ingredient,
+        title: ingredient.title.trim().replace(/\s+/g, " "),
+        measurement: ingredient.measurement?.trim() ?? "",
+      })),
       steps: values.steps.map((step) => ({ ...step, stepInstruction: step.stepInstruction.trim() })),
     },
     errors: {},
