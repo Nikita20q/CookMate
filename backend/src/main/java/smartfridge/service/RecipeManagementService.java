@@ -66,11 +66,6 @@ public class RecipeManagementService {
             throw BusinessException.conflict("Рецепт уже изменён. Получите актуальную версию.");
     }
     private void apply(RecipeEntity recipe, RecipeWriteRequest request) {
-        Set<String> names = new HashSet<>();
-        for (var input : request.ingredients()) {
-            if (!names.add(input.name().trim().toLowerCase(Locale.ROOT)))
-                throw BusinessException.badRequest("Ингредиенты не должны повторяться");
-        }
         recipe.setUpdatedAt(java.time.LocalDateTime.now(java.time.ZoneOffset.UTC));
         recipe.setTitle(request.title().trim());
         recipe.setSlug(request.slug());
@@ -94,14 +89,16 @@ public class RecipeManagementService {
             if (step.imageUrl() != null) node.put("imageUrl", step.imageUrl());
         }
         recipe.setContentJson(content.toString());
-        Map<String, RecipeComponentEntity> existing = new HashMap<>();
-        for (var component : recipe.getComponents()) existing.put(component.getIngredient().getName(), component);
-        Set<String> requestedNames = new HashSet<>();
-        for (var input : request.ingredients()) requestedNames.add(input.name().trim());
-        recipe.getComponents().removeIf(c -> !requestedNames.contains(c.getIngredient().getName()));
+        Map<String, Deque<RecipeComponentEntity>> existing = new HashMap<>();
+        for (var component : recipe.getComponents()) {
+            existing.computeIfAbsent(component.getIngredient().getName(), key -> new ArrayDeque<>()).add(component);
+        }
+        Set<RecipeComponentEntity> retained = Collections.newSetFromMap(new IdentityHashMap<>());
+        int position = 0;
         for (var input : request.ingredients()) {
             String name = input.name().trim();
-            var component = existing.get(name);
+            var matches = existing.get(name);
+            var component = matches == null ? null : matches.pollFirst();
             if (component == null) {
                 var ingredient = ingredients.findByName(name).orElseGet(() ->
                         ingredients.save(IngredientEntity.builder().name(name).build()));
@@ -110,7 +107,11 @@ public class RecipeManagementService {
             }
             component.setCount(input.count());
             component.setMeasurement(input.measurement());
+            component.setPosition(position++);
+            retained.add(component);
         }
+        recipe.getComponents().removeIf(c -> !retained.contains(c));
+        recipe.getComponents().sort(Comparator.comparingInt(RecipeComponentEntity::getPosition));
     }
     private ManagedRecipeResponse response(RecipeEntity recipe) {
         List<RecipeWriteRequest.StepInput> steps = new ArrayList<>();

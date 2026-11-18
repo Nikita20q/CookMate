@@ -25,6 +25,9 @@ public class RecipeComponentEntity {
 
     private Double count;
 
-    @Column(length = 5)
+    @Column(nullable = false)
+    private int position;
+
+    @Column(length = 100)
     private String measurement;
 }

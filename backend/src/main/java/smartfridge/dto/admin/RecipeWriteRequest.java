@@ -18,8 +18,8 @@ public record RecipeWriteRequest(
         @NotEmpty @Size(max=100) List<@NotNull @Valid StepInput> steps) {
 
     public record IngredientInput(@NotBlank @Size(max=100) String name,
-                                  @NotNull @Positive Double count,
-                                  @NotBlank @Size(max=5) String measurement) {}
+                                  @PositiveOrZero Double count,
+                                  @NotBlank @Size(max=100) String measurement) {}
     public record StepInput(@NotBlank @Size(max=10000) String text,
                             @Size(max=255) String title,
                             @Size(max=500) @Pattern(regexp="https?://[^\\s]+") String imageUrl) {}

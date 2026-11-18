@@ -23,6 +23,7 @@ import java.util.List;
 public class ThousandMenuParser {
     private final String BASE_URL = "https://1000.menu/";
     private final InstructionParserFactory instructionParserFactory;
+    private final RecipeCompositionParser compositionParser;
     public List<RecipeCard> parseOnePage(String url, int pageNumber) {
         List<RecipeCard> recipeCards = new ArrayList<>();
         String urlRes = url + "/" + pageNumber;
@@ -68,12 +69,23 @@ public class ThousandMenuParser {
     }
 
     public String parseRecipeDetails(String url) {
-        String urlRes = BASE_URL + url;
+        return parseRecipeData(url).contentJson();
+    }
+
+    public ParsedRecipeDetails parseRecipeData(String url) {
+        String urlRes = java.net.URI.create(BASE_URL).resolve(url).toString();
+        try {
+            return parseRecipeDocument(Jsoup.connect(urlRes).timeout(30000).get());
+        } catch (Exception e) {
+            throw new IllegalStateException("Не удалось прочитать рецепт " + urlRes, e);
+        }
+    }
+
+    ParsedRecipeDetails parseRecipeDocument(Document document) {
         ObjectMapper mapper = new ObjectMapper();
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
 
         try {
-            Document document = Jsoup.connect(urlRes).get();
             Elements element = document.select("span.description-text");
 
             ObjectNode recipe = mapper.createObjectNode();
@@ -85,11 +97,18 @@ public class ThousandMenuParser {
                 recipe.set("steps", allSteps);
             }
 
-            return mapper.writeValueAsString(recipe);
+            var ingredients = compositionParser.ingredients(document);
+            if (ingredients.isEmpty()) {
+                throw new IllegalArgumentException("Не найден состав рецепта: проверьте разметку страницы");
+            }
+            return new ParsedRecipeDetails(mapper.writeValueAsString(recipe),
+                    compositionParser.nutrition(document, "nutr_kcal", "calories"),
+                    compositionParser.nutrition(document, "nutr_p", "proteinContent"),
+                    compositionParser.nutrition(document, "nutr_f", "fatContent"),
+                    compositionParser.nutrition(document, "nutr_c", "carbohydrateContent"), ingredients);
 
         } catch (Exception e) {
-            log.error("Ошибка при парсинге деталей {}: {}", urlRes, e.getMessage());
-            return "{}";
+            throw new IllegalStateException("Ошибка при парсинге деталей рецепта", e);
         }
     }
 

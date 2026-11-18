@@ -44,6 +44,7 @@ public class RecipeEntity {
     private String sourceUrl;
 
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("position ASC, id ASC")
     @Builder.Default
     private List<RecipeComponentEntity> components = new ArrayList<>();
 }

@@ -91,7 +91,8 @@ public class ParserService {
             return false;
         }
 
-        String contentJson = parser.parseRecipeDetails(card.getLinkUrl());
+        var details = parser.parseRecipeData(card.getLinkUrl());
+        String contentJson = details.contentJson();
         String slug = generateSlugFromUrl(card);
 
         String imageUrl = uploadMainImage(card.getImageUrl(), slug);
@@ -110,15 +111,15 @@ public class ParserService {
                 .imageUrl(imageUrl)
                 .sourceUrl(card.getLinkUrl())
                 .prepTimeMinutes(parseMinutes(card.getApproximateTime()))
-                .calories(parseCalories(card.getCalories()))
+                .calories(details.calories() != null ? details.calories() : parseCalories(card.getCalories()))
+                .protein(details.protein())
+                .fat(details.fat())
+                .carbohydrates(details.carbohydrates())
                 .contentJson(processedContentJson)
                 .build();
 
-        for (String ingredientName : card.getIngredients()) {
-            if (ingredientName == null || ingredientName.trim().isEmpty())
-                continue;
-
-            String normalizedName = ingredientName.trim();
+        for (var input : details.ingredients()) {
+            String normalizedName = input.name();
 
             IngredientEntity ingredient = ingredientRepository.findByName(normalizedName)
                     .orElse(null);
@@ -133,8 +134,9 @@ public class ParserService {
             RecipeComponentEntity component = RecipeComponentEntity.builder()
                     .recipe(recipe)
                     .ingredient(ingredient)
-                    .count(0.0)
-                    .measurement("")
+                    .position(recipe.getComponents().size())
+                    .count(input.count())
+                    .measurement(input.measurement())
                     .build();
 
             recipe.getComponents().add(component);
